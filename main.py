@@ -158,7 +158,7 @@ async def main() -> None:
             max_duration=30.0,
         )
         result = await bridge.record_and_transcribe()
-        print(result if result else "（无内容）")
+        print(result if result else "无内容")
 
     except KeyboardInterrupt:
         print("\n\n用户取消")
