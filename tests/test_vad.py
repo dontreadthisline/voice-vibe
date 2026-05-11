@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import pytest
 
 from voicevibe.vad.events import (
+    VADEvent,
     VoiceState,
     VADState,
     VADStateChange,
     VADSilenceTimeout,
 )
+from voicevibe.vad.vad_port import VADPort
 
 
 def test_voice_state_enum():
@@ -44,3 +48,19 @@ def test_events_are_frozen():
     state = VADState(voice_state=VoiceState.SILENCE)
     with pytest.raises(AttributeError):
         state.voice_state = VoiceState.SPEAKING
+
+
+class MockVAD:
+    """Mock implementation for testing protocol compliance."""
+
+    async def detect(
+        self, audio_stream: AsyncIterator[bytes]
+    ) -> AsyncIterator[VADEvent]:
+        async for chunk in audio_stream:
+            pass
+        yield VADSilenceTimeout(silence_duration=1.0)
+
+
+def test_vad_port_protocol_compliance():
+    vad = MockVAD()
+    assert isinstance(vad, VADPort)

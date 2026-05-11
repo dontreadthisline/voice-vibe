@@ -6,11 +6,13 @@ from voicevibe.vad.events import (
     VADEvent,
     VoiceState,
 )
+from voicevibe.vad.vad_port import VADPort
 
 __all__ = [
-    "VoiceState",
+    "VADEvent",
+    "VADPort",
     "VADState",
     "VADStateChange",
     "VADSilenceTimeout",
-    "VADEvent",
+    "VoiceState",
 ]
