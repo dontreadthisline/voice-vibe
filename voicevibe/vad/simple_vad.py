@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import struct
 from collections.abc import AsyncIterator
 
@@ -21,6 +20,9 @@ class SimpleVAD:
 
     Detects silence by comparing audio peak level against threshold.
     Emits VADSilenceTimeout when silence exceeds configured duration.
+
+    Note: Currently only supports mono audio (channels=1). The channels
+    parameter is reserved for future multi-channel support.
     """
 
     def __init__(
@@ -35,12 +37,13 @@ class SimpleVAD:
             silence_threshold: Peak level threshold (0.0-1.0) for silence detection.
             silence_duration: Seconds of silence before timeout.
             sample_rate: Audio sample rate in Hz.
-            channels: Number of audio channels.
+            channels: Number of audio channels (currently only 1 supported).
         """
+        if channels != 1:
+            raise NotImplementedError("Multi-channel audio is not yet supported")
         self._silence_threshold = silence_threshold
         self._silence_duration = silence_duration
         self._sample_rate = sample_rate
-        self._channels = channels
 
     async def detect(
         self, audio_stream: AsyncIterator[bytes]
@@ -55,11 +58,11 @@ class SimpleVAD:
             if peak < self._silence_threshold:
                 # Silence detected
                 silence_samples += chunk_samples
+                silence_duration = silence_samples / self._sample_rate
 
                 if current_state.voice_state == VoiceState.SPEAKING:
                     # State change: speaking -> silence
                     new_state = VADState(voice_state=VoiceState.SILENCE)
-                    silence_duration = silence_samples / self._sample_rate
                     yield VADStateChange(
                         old_state=current_state,
                         new_state=new_state,
@@ -67,7 +70,6 @@ class SimpleVAD:
                     )
                     current_state = new_state
 
-                silence_duration = silence_samples / self._sample_rate
                 if silence_duration >= self._silence_duration:
                     yield VADSilenceTimeout(silence_duration=silence_duration)
                     return  # End detection

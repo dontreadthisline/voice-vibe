@@ -124,14 +124,19 @@ def test_simple_vad_state_change_speaking_to_silence():
 
     events = asyncio.run(collect_events(vad, chunks))
 
-    # Should have: SPEAKING state change, then SILENCE state change
+    # Should have: silence -> speaking, then speaking -> silence
     state_changes = [e for e in events if isinstance(e, VADStateChange)]
-    assert len(state_changes) >= 1
+    assert len(state_changes) == 2
 
-    # First state change should be silence -> speaking
+    # First state change: silence -> speaking
     first_change = state_changes[0]
     assert first_change.old_state.voice_state == VoiceState.SILENCE
     assert first_change.new_state.voice_state == VoiceState.SPEAKING
+
+    # Second state change: speaking -> silence
+    second_change = state_changes[1]
+    assert second_change.old_state.voice_state == VoiceState.SPEAKING
+    assert second_change.new_state.voice_state == VoiceState.SILENCE
 
 
 def test_simple_vad_speaking_resets_silence():
