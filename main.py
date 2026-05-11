@@ -75,6 +75,9 @@ class VoiceSession:
 
         Returns:
             Transcribed text string, or empty string if no speech detected.
+
+        Raises:
+            RuntimeError: If recording fails to start or encounters an error.
         """
         broadcaster = AudioBroadcaster()
         vad = SimpleVAD(
@@ -110,17 +113,23 @@ class VoiceSession:
             self._run_transcription(client, transcribe_stream)
         )
 
-        # Wait for VAD to detect silence timeout
-        await vad_task
+        try:
+            # Wait for VAD to detect silence timeout
+            await vad_task
 
-        # Broadcast task should complete after VAD signals end
-        await broadcast_task
+            # Broadcast task should complete after VAD signals end
+            await broadcast_task
 
-        # Get transcription result
-        result = await transcribe_task
+            # Get transcription result
+            result = await transcribe_task
 
-        print("Done.")
-        return result
+            print("Done.")
+            return result
+        except Exception:
+            # Ensure cleanup on error
+            self._recorder.cancel()
+            broadcaster.close()
+            raise
 
     async def _run_vad(self, vad: SimpleVAD, audio_stream: AsyncIterator[bytes]) -> None:
         """Run VAD detection until silence timeout."""
