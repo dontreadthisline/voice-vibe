@@ -8,6 +8,9 @@ class AudioBroadcaster:
     """Broadcasts audio stream to multiple consumers.
 
     Each consumer gets its own async iterator of the same audio chunks.
+
+    Note: Designed for short-lived sessions where all consumers process at
+    similar speeds. Slow consumers will block broadcast() for all subscribers.
     """
 
     def __init__(self) -> None:

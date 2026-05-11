@@ -79,21 +79,9 @@ async def test_broadcaster_close():
 
     task = asyncio.create_task(collect())
 
-    # Small delay then close
-    await asyncio.sleep(0.01)
+    # Yield control to let the collector start waiting
+    await asyncio.sleep(0)
     broadcaster.close()
     await task
 
     assert received == []
-
-
-def test_broadcaster_single_subscriber_sync():
-    asyncio.run(test_broadcaster_single_subscriber())
-
-
-def test_broadcaster_multiple_subscribers_sync():
-    asyncio.run(test_broadcaster_multiple_subscribers())
-
-
-def test_broadcaster_close_sync():
-    asyncio.run(test_broadcaster_close())
