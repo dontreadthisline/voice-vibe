@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum, auto
 
 
-class VoiceState(Enum):
+class VoiceState(StrEnum):
     """Voice activity state."""
-    SILENCE = "silence"
-    SPEAKING = "speaking"
+    SILENCE = auto()
+    SPEAKING = auto()
 
 
 @dataclass(frozen=True, slots=True)

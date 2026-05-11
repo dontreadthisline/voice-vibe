@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from voicevibe.vad.events import (
     VoiceState,
     VADState,
@@ -40,8 +42,5 @@ def test_vad_silence_timeout():
 
 def test_events_are_frozen():
     state = VADState(voice_state=VoiceState.SILENCE)
-    try:
+    with pytest.raises(AttributeError):
         state.voice_state = VoiceState.SPEAKING
-        assert False, "Should not be able to modify frozen dataclass"
-    except AttributeError:
-        pass
