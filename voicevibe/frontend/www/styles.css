@@ -1,0 +1,611 @@
+/* ============================================================
+   VoiceVibe Frontend — Road Incident Reporter
+   ============================================================ */
+
+:root {
+  --vv-primary: #ff6b35;
+  --vv-primary-dark: #e55a2b;
+  --vv-bg: #f5f7fa;
+  --vv-card-bg: #ffffff;
+  --vv-text: #1a1a2e;
+  --vv-text-secondary: #6b7280;
+  --vv-border: #e5e7eb;
+  --vv-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --vv-radius: 20px;
+  --vv-radius-sm: 12px;
+}
+
+/* —— Reset & Base —— */
+html, body, .page-container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+  background: var(--vv-bg);
+}
+
+/* —— Map fills the viewport —— */
+#map-container {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+}
+
+#map-container .maplibregl-canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* —— FAB (Floating Action Button) —— */
+.vv-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 20px;
+  z-index: 100;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
+  border: none;
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.45),
+              0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
+}
+
+.vv-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 28px rgba(255, 107, 53, 0.55),
+              0 3px 10px rgba(0, 0, 0, 0.18);
+}
+
+.vv-fab:active {
+  transform: scale(0.95);
+}
+
+.vv-fab svg {
+  width: 32px;
+  height: 32px;
+  fill: white;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+}
+
+/* —— Overlay backdrop —— */
+.vv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.vv-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* —— Report Panel —— */
+.vv-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%) translateY(100%);
+  z-index: 210;
+  width: 100%;
+  max-width: 420px;
+  background: var(--vv-card-bg);
+  border-radius: var(--vv-radius) var(--vv-radius) 0 0;
+  padding: 24px 20px 32px;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.vv-panel.active {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Panel header */
+.vv-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.vv-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--vv-text);
+  letter-spacing: -0.3px;
+}
+
+.vv-panel-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.vv-panel-close:hover {
+  background: #e5e7eb;
+  color: #6b7280;
+}
+
+/* —— Voice Card —— */
+.vv-voice-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f0fe 100%);
+  border-radius: var(--vv-radius-sm);
+  border: 1px solid #dbeafe;
+  margin-bottom: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vv-voice-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.12);
+}
+
+.vv-voice-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.vv-voice-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: white;
+}
+
+.vv-voice-info {
+  flex: 1;
+}
+
+.vv-voice-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 4px;
+}
+
+.vv-voice-subtitle {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.vv-voice-arrow {
+  color: #93c5fd;
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+
+.vv-voice-card:hover .vv-voice-arrow {
+  transform: translateX(3px);
+  color: #3b82f6;
+}
+
+/* —— Category Grid —— */
+.vv-categories {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.vv-category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 10px 4px;
+  border-radius: var(--vv-radius-sm);
+  transition: background 0.2s, transform 0.2s;
+}
+
+.vv-category:hover {
+  background: #f9fafb;
+  transform: translateY(-2px);
+}
+
+.vv-category:active {
+  transform: scale(0.95);
+}
+
+.vv-category-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.vv-category:hover .vv-category-icon {
+  transform: scale(1.1);
+}
+
+.vv-category-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vv-text);
+}
+
+/* Category colors */
+.cat-traffic  .vv-category-icon { background: #fef2f2; }
+.cat-police   .vv-category-icon { background: #eff6ff; }
+.cat-accident .vv-category-icon { background: #fef2f2; }
+.cat-danger   .vv-category-icon { background: #fffbeb; }
+.cat-blocked  .vv-category-icon { background: #f0fdf4; }
+.cat-roadwork .vv-category-icon { background: #fffbeb; }
+
+.cat-traffic  .vv-category-icon svg { fill: #ef4444; }
+.cat-police   .vv-category-icon svg { fill: #3b82f6; }
+.cat-accident .vv-category-icon svg { fill: #ef4444; }
+.cat-danger   .vv-category-icon svg { fill: #f59e0b; }
+.cat-blocked  .vv-category-icon svg { fill: #f97316; }
+.cat-roadwork .vv-category-icon svg { fill: #d97706; }
+
+/* Selected state */
+.vv-category.selected .vv-category-icon {
+  box-shadow: 0 0 0 3px var(--vv-primary);
+}
+
+/* —— Voice Recording Panel (slide from right) —— */
+.vv-voice-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 380px;
+  height: 100vh;
+  background: var(--vv-card-bg);
+  z-index: 220;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+}
+
+.vv-voice-panel.active {
+  transform: translateX(0);
+}
+
+.vv-voice-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--vv-border);
+}
+
+.vv-voice-panel-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--vv-text);
+}
+
+.vv-voice-panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 20px;
+}
+
+.vv-direction {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--vv-text);
+  letter-spacing: 2px;
+}
+
+/* —— Waveform Animation —— */
+.vv-waveform {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 120px;
+}
+
+.vv-wave-bar {
+  width: 6px;
+  background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+  border-radius: 3px;
+  animation: wave 1.2s ease-in-out infinite;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+}
+
+.vv-wave-bar:nth-child(1) { height: 24px; animation-delay: 0.0s; }
+.vv-wave-bar:nth-child(2) { height: 48px; animation-delay: 0.1s; }
+.vv-wave-bar:nth-child(3) { height: 72px; animation-delay: 0.2s; }
+.vv-wave-bar:nth-child(4) { height: 96px; animation-delay: 0.3s; }
+.vv-wave-bar:nth-child(5) { height: 120px; animation-delay: 0.15s; }
+.vv-wave-bar:nth-child(6) { height: 96px; animation-delay: 0.25s; }
+.vv-wave-bar:nth-child(7) { height: 72px; animation-delay: 0.05s; }
+.vv-wave-bar:nth-child(8) { height: 48px; animation-delay: 0.35s; }
+.vv-wave-bar:nth-child(9) { height: 24px; animation-delay: 0.1s; }
+
+@keyframes wave {
+  0%, 100% {
+    transform: scaleY(0.4);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scaleY(1.0);
+    opacity: 1;
+  }
+}
+
+/* Real-time waveform (JS-driven) */
+.vv-waveform-live .vv-wave-bar {
+  animation: none;
+  transition: height 0.08s ease;
+}
+
+/* —— Voice Panel Footer —— */
+.vv-voice-panel-footer {
+  padding: 20px;
+  border-top: 1px solid var(--vv-border);
+}
+
+.vv-switch-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--vv-radius-sm);
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.vv-switch-btn:hover {
+  background: #dbeafe;
+}
+
+.vv-switch-btn:active {
+  transform: scale(0.98);
+}
+
+/* —— Transcription Result —— */
+.vv-transcript {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: var(--vv-radius-sm);
+  font-size: 14px;
+  color: var(--vv-text);
+  line-height: 1.6;
+  max-width: 100%;
+  word-break: break-word;
+  min-height: 60px;
+}
+
+.vv-transcript:empty::before {
+  content: "正在聆听…";
+  color: var(--vv-text-secondary);
+}
+
+/* —— Status Badge —— */
+.vv-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.vv-status.recording {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.vv-status.recording::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+/* —— Responsive tweaks —— */
+@media (max-width: 480px) {
+  .vv-panel {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .vv-voice-panel {
+    max-width: 100%;
+  }
+
+  .vv-fab {
+    width: 56px;
+    height: 56px;
+    bottom: 20px;
+    right: 16px;
+  }
+}
+
+/* —— Hide Shiny default chrome —— */
+.shiny-html-output:empty { display: none; }
+
+/* ============================================================
+   MapLibre full-screen overrides
+   ============================================================ */
+
+/* Shiny output wrapper that contains the map */
+.shiny-html-output:has(> .maplibregl-map),
+.shiny-html-output:has(> div > .maplibregl-map) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 1;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Direct map container */
+.maplibregl-map {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure canvas fills container */
+.maplibregl-canvas-container,
+.maplibregl-canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Fix for shiny express page layout */
+.html-fill-container {
+  overflow: hidden !important;
+}
+
+.html-fill-item {
+  min-height: 100vh !important;
+}
+
+/* Hide any Shiny placeholder text that might overlay the map */
+.shiny-placeholder:empty {
+  display: none !important;
+}
+
+/* ============================================================
+   Override MapLibre inline height
+   ============================================================ */
+
+.shiny-maplibregl-output {
+  height: 100vh !important;
+  width: 100vw !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  z-index: 1;
+}
+
+/* ============================================================
+   FAB Button — ensure visible above map
+   ============================================================ */
+.vv-fab {
+  position: fixed !important;
+  right: 20px !important;
+  bottom: 60px !important;
+  z-index: 99999 !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 18px !important;
+  background: #ff6600 !important;
+  border: 3px solid #fff !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+
+.vv-fab svg {
+  stroke: white !important;
+}
+
+.vv-fab-badge {
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  width: 12px !important;
+  height: 12px !important;
+  background: #ff4444 !important;
+  border-radius: 50% !important;
+  border: 2px solid #fff !important;
+}
+
+/* ============================================================
+   Report Panel — ensure visible above map
+   ============================================================ */
+.vv-report-panel {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 99998 !important;
+  background: #fff !important;
+  border-radius: 24px 24px 0 0 !important;
+  padding: 24px 18px 40px !important;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.15) !important;
+}
+
+.vv-report-panel.hidden {
+  transform: translateY(110%) !important;
+}
+
+/* ============================================================
+   Voice Panel — ensure visible above map
+   ============================================================ */
+.vv-voice-panel {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 99999 !important;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%) !important;
+}
+
+.vv-voice-panel.hidden {
+  display: none !important;
+}

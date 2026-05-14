@@ -12,7 +12,12 @@ dependencies = [
   "pydantic-settings>=2.12.0",
   "tomli-w>=1.2.0",
   "gradio>=6.11.0",
+  "maplibre[shiny]>=0.3.6",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["voicevibe*", "benchmark*"]
 
 [dependency-groups]
 dev = [

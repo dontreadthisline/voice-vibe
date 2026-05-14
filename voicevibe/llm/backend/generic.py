@@ -11,7 +11,6 @@ import httpx
 from voicevibe.llm.backend.anthropic import AnthropicAdapter
 from voicevibe.llm.backend.base import APIAdapter, PreparedRequest
 from voicevibe.llm.backend.reasoning_adapter import ReasoningAdapter
-from voicevibe.llm.backend.vertex import VertexAnthropicAdapter
 from voicevibe.llm.exceptions import BackendErrorBuilder
 from voicevibe.llm.message_utils import merge_consecutive_user_messages
 from voicevibe.types import (
@@ -163,7 +162,6 @@ class OpenAIAdapter(APIAdapter):
 ADAPTERS: dict[str, APIAdapter] = {
     "openai": OpenAIAdapter(),
     "anthropic": AnthropicAdapter(),
-    "vertex-anthropic": VertexAnthropicAdapter(),
     "reasoning": ReasoningAdapter(),
 }
 

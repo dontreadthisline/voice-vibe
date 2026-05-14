@@ -1,8 +1,4 @@
-"""Utilities package. Re-exports all public and test-used symbols from submodules.
-
-Import read_safe/read_safe_async from vibe.core.utils.io and create_slug from
-vibe.core.utils.slug when needed to avoid circular imports with config.
-"""
+"""Utilities package. Re-exports all public and test-used symbols from submodules."""
 
 from __future__ import annotations
 
@@ -29,6 +25,17 @@ from voicevibe.utils.tags import (
 )
 from voicevibe.utils.time import utc_now
 
+
+def get_server_url_from_api_base(api_base: str) -> str | None:
+    """Extract server URL from API base URL.
+
+    Example: "https://api.mistral.ai/v1" -> "https://api.mistral.ai"
+    """
+    if "/v" in api_base:
+        return api_base.rsplit("/v", 1)[0]
+    return api_base
+
+
 __all__ = [
     "CANCELLATION_TAG",
     "KNOWN_TAGS",
@@ -42,6 +49,7 @@ __all__ = [
     "async_generator_retry",
     "async_retry",
     "compact_reduction_display",
+    "get_server_url_from_api_base",
     "get_user_cancellation_message",
     "is_dangerous_directory",
     "is_user_cancellation_event",

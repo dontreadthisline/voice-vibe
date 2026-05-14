@@ -399,6 +399,14 @@ class AgentProfileChangedEvent(BaseEvent):
     agent_name: str
 
 
+class ToolResultEvent(BaseEvent):
+    """Emitted when a tool result is received."""
+
+    tool_name: str
+    result: str
+    cancelled: bool = False
+
+
 class OutputFormat(StrEnum):
     TEXT = auto()
     JSON = auto()
