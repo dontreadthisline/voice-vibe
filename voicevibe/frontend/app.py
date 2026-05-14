@@ -44,7 +44,7 @@ from voicevibe.vad import SimpleVAD, VADSilenceTimeout, VADStateChange, VoiceSta
 # ------------------------------------------------------------------
 app_opts(static_assets=Path(__file__).parent / "www")
 
-# Load CSS + JS only.  ALL UI panels are created dynamically in voice.js.
+# Load CSS in head
 ui.head_content(
     ui.tags.link(rel="stylesheet", href="styles.css"),
     ui.tags.script(src="voice.js"),
@@ -79,14 +79,10 @@ _voice_task: asyncio.Task | None = None
 # ------------------------------------------------------------------
 # Helpers: push messages to connected frontend
 # ------------------------------------------------------------------
-async def _push(kind: str, **data) -> None:
+async def _push(session, kind: str, **data) -> None:
     """Send a custom message to the frontend via Shiny WebSocket."""
-    try:
-        session = get_current_session()
-        if session is not None:
-            await session.send_custom_message(kind, data)
-    except Exception:
-        pass
+    if session is not None:
+        await session.send_custom_message(kind, data)
 
 
 # ------------------------------------------------------------------
@@ -107,10 +103,14 @@ async def handle_start_voice():
 
     # Reset state
     transcript_result.set("")
-    await _push("vv_status", state="listening")
 
-    # Launch pipeline in background (pass session via closure)
-    _voice_task = asyncio.create_task(_run_voice_pipeline())
+    # Capture session before launching background task
+    session = get_current_session()
+    await _push(session, "vv_transcript", text="")  # Clear any previous text
+    await _push(session, "vv_status", state="listening")
+
+    # Launch pipeline in background, passing session explicitly
+    _voice_task = asyncio.create_task(_run_voice_pipeline(session))
 
 
 # ------------------------------------------------------------------
@@ -128,7 +128,7 @@ def handle_stop_voice():
 # ------------------------------------------------------------------
 # Voice Pipeline: AudioRecorder → Broadcaster → VAD + ASR (parallel)
 # ------------------------------------------------------------------
-async def _run_voice_pipeline():
+async def _run_voice_pipeline(session):
     SAMPLE_RATE = 16000
     SILENCE_DURATION = 3.0
     MAX_DURATION = 30.0
@@ -154,15 +154,15 @@ async def _run_voice_pipeline():
         )
 
     vad = SimpleVAD(
-        silence_threshold=0.02,
+        silence_threshold=0.10,  # Must be above ambient noise (~0.05)
         silence_duration=SILENCE_DURATION,
         sample_rate=actual_rate,
     )
 
     api_key = os.environ.get("MISTRAL_API_KEY", "")
     if not api_key:
-        await _push("vv_transcript", text="错误: 未配置 MISTRAL_API_KEY")
-        await _push("vv_status", state="error")
+        await _push(session, "vv_transcript", text="错误: 未配置 MISTRAL_API_KEY")
+        await _push(session, "vv_status", state="error")
         return
 
     client = MistralTranscribeClient(
@@ -183,8 +183,8 @@ async def _run_voice_pipeline():
     asr_stream = broadcaster.subscribe()
 
     broadcast_task = asyncio.create_task(broadcaster.broadcast(recorder.audio_stream()))
-    vad_task = asyncio.create_task(_consume_vad(vad, vad_stream))
-    asr_task = asyncio.create_task(_consume_asr(client, asr_stream))
+    vad_task = asyncio.create_task(_consume_vad(session, vad, vad_stream))
+    asr_task = asyncio.create_task(_consume_asr(session, client, asr_stream))
 
     try:
         # Wait for VAD to decide
@@ -204,9 +204,13 @@ async def _run_voice_pipeline():
         broadcaster.close()
         raise
 
+    except (_NoSpeech, _SilenceAfterSpeech):
+        # Normal flow control - no error to display
+        pass
+
     except Exception as exc:
-        await _push("vv_transcript", text=f"识别出错: {exc}")
-        await _push("vv_status", state="error")
+        await _push(session, "vv_transcript", text=f"识别出错: {exc}")
+        await _push(session, "vv_status", state="error")
 
     finally:
         if recorder.is_recording:
@@ -224,34 +228,35 @@ class _SilenceAfterSpeech(Exception):
     pass
 
 
-async def _consume_vad(vad: SimpleVAD, audio_stream: AsyncIterator[bytes]) -> None:
+async def _consume_vad(session, vad: SimpleVAD, audio_stream: AsyncIterator[bytes]) -> None:
     speech_detected = False
 
     async for event in vad.detect(audio_stream):
         if isinstance(event, VADStateChange):
             if event.new_state.voice_state == VoiceState.SPEAKING:
                 speech_detected = True
-                await _push("vv_status", state="speaking")
+                await _push(session, "vv_status", state="speaking")
 
         elif isinstance(event, VADSilenceTimeout):
             if not speech_detected:
-                await _push("vv_status", state="timeout")
-                await _push("vv_close_voice")
+                await _push(session, "vv_status", state="timeout")
+                await _push(session, "vv_close_voice")
                 raise _NoSpeech()
             else:
-                await _push("vv_status", state="done")
+                await _push(session, "vv_status", state="done")
                 raise _SilenceAfterSpeech()
 
     if not speech_detected:
-        await _push("vv_status", state="timeout")
-        await _push("vv_close_voice")
+        await _push(session, "vv_status", state="timeout")
+        await _push(session, "vv_close_voice")
         raise _NoSpeech()
-    await _push("vv_status", state="done")
+    await _push(session, "vv_status", state="done")
     raise _SilenceAfterSpeech()
 
 
 # —— ASR consumer ——
 async def _consume_asr(
+    session,
     client: MistralTranscribeClient,
     audio_stream: AsyncIterator[bytes],
 ) -> str:
@@ -260,11 +265,11 @@ async def _consume_asr(
         if isinstance(event, TranscribeTextDelta):
             result += event.text
             transcript_result.set(result)
-            await _push("vv_transcript", text=result)
+            await _push(session, "vv_transcript", text=result)
         elif isinstance(event, TranscribeDone):
             break
         elif isinstance(event, TranscribeError):
-            await _push("vv_transcript", text=f"转录错误: {event.message}")
+            await _push(session, "vv_transcript", text=f"转录错误: {event.message}")
             break
     return result
 

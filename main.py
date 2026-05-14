@@ -52,13 +52,17 @@ def build_parser() -> argparse.ArgumentParser:
     # frontend (default when no subcommand given)
     frontend = sub.add_parser("frontend", help="启动前端 Shiny 应用")
     frontend.add_argument("--host", default="0.0.0.0", help="监听地址 (默认: 0.0.0.0)")
-    frontend.add_argument("--port", type=int, default=8080, help="监听端口 (默认: 8080)")
-    frontend.add_argument("--reload", action="store_true", help="开发模式: 文件变化自动重启")
+    frontend.add_argument(
+        "--port", type=int, default=8080, help="监听端口 (默认: 8080)"
+    )
+    frontend.add_argument(
+        "--reload", action="store_true", help="开发模式: 文件变化自动重启"
+    )
 
     # demo
     demo = sub.add_parser("demo", help="运行录音 + 转录 demo")
     demo.add_argument(
-        "--silence-threshold", type=float, default=0.02, help="静音阈值 (默认: 0.02)"
+        "--silence-threshold", type=float, default=0.10, help="静音阈值 (默认: 0.10)"
     )
     demo.add_argument(
         "--silence-duration", type=float, default=1.5, help="静音持续秒数 (默认: 1.5)"
@@ -73,10 +77,15 @@ def build_parser() -> argparse.ArgumentParser:
 def run_frontend(host: str = "0.0.0.0", port: int = 8080, reload: bool = False) -> int:
     """启动前端 Shiny 应用。"""
     cmd = [
-        sys.executable, "-m", "shiny", "run",
+        sys.executable,
+        "-m",
+        "shiny",
+        "run",
         str(FRONTEND_APP),
-        "--host", host,
-        "--port", str(port),
+        "--host",
+        host,
+        "--port",
+        str(port),
     ]
     if reload:
         cmd.append("--reload")
@@ -149,9 +158,7 @@ async def run_demo(
 
     print("🎤 正在聆听… (直接说话，静音后自动停止)")
 
-    broadcast_task = asyncio.create_task(
-        broadcaster.broadcast(recorder.audio_stream())
-    )
+    broadcast_task = asyncio.create_task(broadcaster.broadcast(recorder.audio_stream()))
 
     async def _run_vad() -> None:
         async for event in vad.detect(vad_stream):
@@ -210,7 +217,7 @@ def main() -> int:
 
     # Default: start frontend
     return run_frontend(
-        host=getattr(args, "host", "0.0.0.0"),
+        host=getattr(args, "host", "localhost"),
         port=getattr(args, "port", 8080),
         reload=getattr(args, "reload", False),
     )

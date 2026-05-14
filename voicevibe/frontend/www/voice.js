@@ -10,12 +10,12 @@
 (function () {
   "use strict";
 
-  const qs = (sel) => document.querySelector(sel);
-  const qsa = (sel) => document.querySelectorAll(sel);
+  var qs = function(sel) { return document.querySelector(sel); };
+  var qsa = function(sel) { return document.querySelectorAll(sel); };
 
   // —— SVG icons ——
-  const ICONS = {
-    fab: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>',
+  var ICONS = {
+    fab: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     mic: '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>',
     traffic: '<svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>',
     police: '<svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>',
@@ -25,7 +25,7 @@
     roadwork: '<svg viewBox="0 0 24 24"><path d="M12 2l-5.5 9h11z"/><circle cx="17.5" cy="17.5" r="4.5"/><path d="M3 13.5h8v8H3z"/></svg>',
   };
 
-  const CATEGORIES = [
+  var CATEGORIES = [
     { id: "traffic", label: "拥堵", cls: "cat-traffic" },
     { id: "police", label: "警察", cls: "cat-police" },
     { id: "accident", label: "事故", cls: "cat-accident" },
@@ -36,12 +36,12 @@
 
   // —— Build category grid HTML ——
   function categoriesHTML() {
-    return CATEGORIES.map((c) => `
-      <div class="vv-category ${c.cls}" data-vv-action="select-category" data-category="${c.id}">
-        <div class="vv-category-icon">${ICONS[c.id]}</div>
-        <span class="vv-category-label">${c.label}</span>
-      </div>
-    `).join("");
+    return CATEGORIES.map(function(c) {
+      return '<div class="vv-category ' + c.cls + '" data-vv-action="select-category" data-category="' + c.id + '">' +
+        '<div class="vv-category-icon">' + ICONS[c.id] + '</div>' +
+        '<span class="vv-category-label">' + c.label + '</span>' +
+      '</div>';
+    }).join("");
   }
 
   // —— Create all UI elements and mount to body ——
@@ -50,88 +50,95 @@
     if (qs(".vv-fab")) return;
 
     // 1. FAB
-    const fab = document.createElement("button");
+    var fab = document.createElement("button");
     fab.className = "vv-fab";
     fab.setAttribute("data-vv-action", "open-panel");
     fab.innerHTML = ICONS.fab;
     document.body.appendChild(fab);
 
     // 2. Overlay
-    const overlay = document.createElement("div");
+    var overlay = document.createElement("div");
     overlay.className = "vv-overlay";
     document.body.appendChild(overlay);
 
     // 3. Report Panel
-    const panel = document.createElement("div");
+    var panel = document.createElement("div");
     panel.className = "vv-panel";
-    panel.innerHTML = `
-      <div class="vv-panel-header">
-        <span class="vv-panel-title">上报路况问题</span>
-        <button class="vv-panel-close" data-vv-action="close-panel">×</button>
-      </div>
-      <div class="vv-voice-card" data-vv-action="open-voice">
-        <div class="vv-voice-icon">${ICONS.mic}</div>
-        <div class="vv-voice-info">
-          <div class="vv-voice-title">智能语音上报</div>
-          <div class="vv-voice-subtitle">直接语音描述，AI自动识别分类</div>
-        </div>
-        <span class="vv-voice-arrow">›</span>
-      </div>
-      <div class="vv-categories">${categoriesHTML()}</div>
-      <div id="submit-section">
-        <button class="vv-switch-btn" data-vv-action="submit-report" style="margin-top:20px;background:linear-gradient(135deg,#ff8c42,#ff6b35);color:white;border:none;">确认上报</button>
-      </div>
-    `;
+    panel.innerHTML =
+      '<div class="vv-panel-header">' +
+        '<span class="vv-panel-title">上报路况问题</span>' +
+        '<button class="vv-panel-close" data-vv-action="close-panel">×</button>' +
+      '</div>' +
+      '<div class="vv-voice-card" data-vv-action="open-voice">' +
+        '<div class="vv-voice-icon">' + ICONS.mic + '</div>' +
+        '<div class="vv-voice-info">' +
+          '<div class="vv-voice-title">智能语音上报</div>' +
+          '<div class="vv-voice-subtitle">直接语音描述，AI自动识别分类</div>' +
+        '</div>' +
+        '<span class="vv-voice-arrow">›</span>' +
+      '</div>' +
+      '<div class="vv-categories">' + categoriesHTML() + '</div>' +
+      '<div id="submit-section">' +
+        '<button class="vv-switch-btn" data-vv-action="submit-report" style="margin-top:20px;background:linear-gradient(135deg,#ff8c42,#ff6b35);color:white;border:none;">确认上报</button>' +
+      '</div>';
     document.body.appendChild(panel);
 
     // 4. Voice Panel
-    const voicePanel = document.createElement("div");
+    var voicePanel = document.createElement("div");
     voicePanel.className = "vv-voice-panel";
-    voicePanel.innerHTML = `
-      <div class="vv-voice-panel-header">
-        <span class="vv-voice-panel-title">语音上报</span>
-        <button class="vv-panel-close" data-vv-action="close-voice">×</button>
-      </div>
-      <div class="vv-voice-panel-body">
-        <div class="vv-transcript" id="transcript-box">聆听中…</div>
-        <div class="vv-waveform"></div>
-        <div class="vv-status recording vv-recording-status">正在聆听…</div>
-      </div>
-      <div class="vv-voice-panel-footer">
-        <button class="vv-switch-btn" data-vv-action="close-voice">切回点选优先 ›</button>
-      </div>
-    `;
+    voicePanel.innerHTML =
+      '<div class="vv-voice-panel-header">' +
+        '<span class="vv-voice-panel-title">语音上报</span>' +
+        '<button class="vv-panel-close" data-vv-action="close-voice">×</button>' +
+      '</div>' +
+      '<div class="vv-voice-panel-body">' +
+        '<div class="vv-waveform">' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+          '<div class="vv-wave-bar"></div>' +
+        '</div>' +
+        '<div class="vv-transcript" id="transcript-box"></div>' +
+      '</div>' +
+      '<div class="vv-voice-panel-footer">' +
+        '<button class="vv-switch-btn" data-vv-action="close-voice">关闭</button>' +
+      '</div>';
     document.body.appendChild(voicePanel);
   }
 
   // —— Panel controls ——
   function openReportPanel() {
-    qs(".vv-overlay")?.classList.add("active");
-    qs(".vv-panel")?.classList.add("active");
+    var overlay = qs(".vv-overlay");
+    var panel = qs(".vv-panel");
+    if (overlay) overlay.classList.add("active");
+    if (panel) panel.classList.add("active");
   }
 
   function closeReportPanel() {
-    qs(".vv-overlay")?.classList.remove("active");
-    qs(".vv-panel")?.classList.remove("active");
+    var overlay = qs(".vv-overlay");
+    var panel = qs(".vv-panel");
+    if (overlay) overlay.classList.remove("active");
+    if (panel) panel.classList.remove("active");
   }
 
   function openVoicePanel() {
     closeReportPanel();
-    qs(".vv-voice-panel")?.classList.add("active");
+    var voicePanel = qs(".vv-voice-panel");
+    if (voicePanel) voicePanel.classList.add("active");
 
     if (window.Shiny && window.Shiny.setInputValue) {
       window.Shiny.setInputValue("vv_start_voice", { t: Date.now() }, { priority: "event" });
     }
-
-    const statusEl = qs(".vv-recording-status");
-    if (statusEl) {
-      statusEl.textContent = "正在聆听…";
-      statusEl.classList.add("recording");
-    }
   }
 
   function closeVoicePanel() {
-    qs(".vv-voice-panel")?.classList.remove("active");
+    var voicePanel = qs(".vv-voice-panel");
+    if (voicePanel) voicePanel.classList.remove("active");
 
     if (window.Shiny && window.Shiny.setInputValue) {
       window.Shiny.setInputValue("vv_stop_voice", { t: Date.now() }, { priority: "event" });
@@ -140,10 +147,10 @@
 
   // —— Event delegation (all clicks) ——
   document.addEventListener("click", function (e) {
-    const target = e.target.closest("[data-vv-action]");
+    var target = e.target.closest("[data-vv-action]");
     if (!target) return;
 
-    const action = target.dataset.vvAction;
+    var action = target.dataset.vvAction;
     switch (action) {
       case "open-panel":
         openReportPanel();
@@ -158,11 +165,14 @@
         closeVoicePanel();
         break;
       case "select-category": {
-        const cat = target.dataset.category;
+        var cat = target.dataset.category;
         if (window.Shiny && window.Shiny.setInputValue) {
           window.Shiny.setInputValue("selected_category", { category: cat, t: Date.now() });
         }
-        qsa(".vv-category").forEach((el) => el.classList.remove("selected"));
+        var cats = qsa(".vv-category");
+        for (var i = 0; i < cats.length; i++) {
+          cats[i].classList.remove("selected");
+        }
         target.classList.add("selected");
         break;
       }
@@ -185,9 +195,11 @@
   // Keyboard
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape") {
-      if (qs(".vv-voice-panel")?.classList.contains("active")) {
+      var voicePanel = qs(".vv-voice-panel");
+      var panel = qs(".vv-panel");
+      if (voicePanel && voicePanel.classList.contains("active")) {
         closeVoicePanel();
-      } else if (qs(".vv-panel")?.classList.contains("active")) {
+      } else if (panel && panel.classList.contains("active")) {
         closeReportPanel();
       }
     }
@@ -195,65 +207,77 @@
 
   // —— Shiny custom message handlers ——
   if (window.Shiny && window.Shiny.addCustomMessageHandler) {
-    // Transcript updates
-    Shiny.addCustomMessageHandler("vv_transcript", function (msg) {
-      const el = qs("#transcript-box");
-      if (el) el.textContent = msg.text || "聆听中…";
-    });
+    try {
+      // Transcript updates
+      Shiny.addCustomMessageHandler("vv_transcript", function (msg) {
+        var el = qs("#transcript-box");
+        if (el) el.textContent = msg.text || "";
+      });
 
-    // Status updates
-    Shiny.addCustomMessageHandler("vv_status", function (msg) {
-      const el = qs(".vv-recording-status");
-      if (!el) return;
-      switch (msg.state) {
-        case "listening":
-          el.textContent = "正在聆听…";
-          el.classList.add("recording");
-          break;
-        case "speaking":
-          el.textContent = "识别中…";
-          el.classList.add("recording");
-          break;
-        case "done":
-          el.textContent = "识别完成";
-          el.classList.remove("recording");
-          break;
-        case "timeout":
-          el.textContent = "未检测到语音";
-          el.classList.remove("recording");
-          if (qs(".vv-voice-panel")?.classList.contains("active")) {
+      // Status updates
+      Shiny.addCustomMessageHandler("vv_status", function (msg) {
+        if (msg.state === "timeout") {
+          var vp = qs(".vv-voice-panel");
+          if (vp && vp.classList.contains("active")) {
             setTimeout(closeVoicePanel, 1200);
           }
-          break;
-        case "error":
-          el.textContent = "识别出错";
-          el.classList.remove("recording");
-          break;
-      }
-    });
+        }
+      });
 
-    // Backend-triggered close
-    Shiny.addCustomMessageHandler("vv_close_voice", function () {
-      qs(".vv-voice-panel")?.classList.remove("active");
-    });
+      // Backend-triggered close
+      Shiny.addCustomMessageHandler("vv_close_voice", function () {
+        var panel = qs(".vv-voice-panel");
+        if (panel) panel.classList.remove("active");
+      });
+    } catch(e) {
+      console.error("[VoiceVibe] Shiny handler registration failed:", e);
+    }
   }
 
   // —— Auto-locate on map ready ——
   function autoLocate() {
     setTimeout(function () {
-      const btn = qs(".maplibregl-ctrl-geolocate");
+      var btn = qs(".maplibregl-ctrl-geolocate");
       if (btn) btn.click();
     }, 1500);
   }
 
-  if (window.jQuery) {
-    jQuery(document).on("shiny:value", autoLocate);
+  // Check if Shiny is already idle (event may have fired before this script ran)
+  // If not idle yet, bind to the event. If already idle, trigger immediately.
+  function setupAutoLocate() {
+    if (!window.jQuery) return;
+
+    // Check if shiny:idle has already fired by checking Shiny's internal state
+    // Shiny sets shinyapp.$activeSubscriptions when busy, undefined when idle
+    var alreadyIdle = window.Shiny && window.Shiny.shinyapp &&
+                      !window.Shiny.shinyapp.$activeSubscriptions;
+
+    if (alreadyIdle) {
+      // Already idle - trigger immediately
+      autoLocate();
+    } else {
+      // Not idle yet - bind to the event
+      jQuery(document).on("shiny:idle", autoLocate);
+    }
   }
 
+  // Run setup after a small delay to ensure Shiny is initialized
+  setTimeout(setupAutoLocate, 100);
+
   // —— Init ——
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", createUI);
-  } else {
+  function init() {
+    // Ensure body exists before creating UI
+    if (!document.body) {
+      requestAnimationFrame(init);
+      return;
+    }
     createUI();
+  }
+
+  // Start initialization
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    requestAnimationFrame(init);
   }
 })();

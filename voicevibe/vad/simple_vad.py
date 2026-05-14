@@ -27,7 +27,7 @@ class SimpleVAD:
 
     def __init__(
         self,
-        silence_threshold: float = 0.02,
+        silence_threshold: float = 0.10,
         silence_duration: float = 1.5,
         sample_rate: int = 16000,
         channels: int = 1,

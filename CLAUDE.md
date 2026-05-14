@@ -149,3 +149,17 @@ Key external libraries:
 ## Entry Points
 
 - `main.py` - Example CLI demonstrating real-time voice recording with VAD and transcription
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Using default labels: needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout: CONTEXT.md and docs/adr/ at repo root. See `docs/agents/domain.md`.

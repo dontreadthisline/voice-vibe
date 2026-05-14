@@ -27,7 +27,7 @@ html, body, .page-container {
 }
 
 /* —— Map fills the viewport —— */
-#map-container {
+#map_container {
   position: fixed !important;
   top: 0;
   left: 0;
@@ -36,36 +36,34 @@ html, body, .page-container {
   z-index: 1;
 }
 
-#map-container .maplibregl-canvas-container canvas {
+#map_container .maplibregl-canvas-container canvas {
   width: 100% !important;
   height: 100% !important;
 }
 
 /* —— FAB (Floating Action Button) —— */
 .vv-fab {
-  position: fixed;
-  bottom: 28px;
-  right: 20px;
-  z-index: 100;
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
-  border: none;
-  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.45),
-              0 2px 8px rgba(0, 0, 0, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
+  position: fixed !important;
+  bottom: 60px !important;
+  right: 20px !important;
+  z-index: 99999 !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 18px !important;
+  background: #ff6600 !important;
+  border: 3px solid white !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
               box-shadow 0.25s ease;
 }
 
 .vv-fab:hover {
   transform: scale(1.08);
-  box-shadow: 0 8px 28px rgba(255, 107, 53, 0.55),
-              0 3px 10px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
 .vv-fab:active {
@@ -75,8 +73,21 @@ html, body, .page-container {
 .vv-fab svg {
   width: 32px;
   height: 32px;
-  fill: white;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+  fill: white !important;
+  stroke: white !important;
+}
+
+/* Red badge on FAB */
+.vv-fab::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 12px;
+  height: 12px;
+  background: #ff4444;
+  border-radius: 50%;
+  border: 2px solid white;
 }
 
 /* —— Overlay backdrop —— */
@@ -96,24 +107,30 @@ html, body, .page-container {
   visibility: visible;
 }
 
-/* —— Report Panel —— */
+/* —— Report Panel (compact floating card) —— */
 .vv-panel {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%) translateY(100%);
-  z-index: 210;
-  width: 100%;
-  max-width: 420px;
-  background: var(--vv-card-bg);
-  border-radius: var(--vv-radius) var(--vv-radius) 0 0;
-  padding: 24px 20px 32px;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.18);
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 100px !important;
+  transform: translateX(-50%) translateY(20px) !important;
+  z-index: 99998 !important;
+  width: 360px !important;
+  max-width: calc(100vw - 40px) !important;
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  padding: 20px !important;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18) !important;
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 0.3s ease,
+              visibility 0.3s ease;
 }
 
 .vv-panel.active {
-  transform: translateX(-50%) translateY(0);
+  transform: translateX(-50%) translateY(0) !important;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Panel header */
@@ -284,25 +301,27 @@ html, body, .page-container {
   box-shadow: 0 0 0 3px var(--vv-primary);
 }
 
-/* —— Voice Recording Panel (slide from right) —— */
+/* —— Voice Recording Panel (right-side drawer) —— */
 .vv-voice-panel {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 100%;
-  max-width: 380px;
-  height: 100vh;
-  background: var(--vv-card-bg);
-  z-index: 220;
-  transform: translateX(100%);
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 40% !important;
+  max-width: 400px !important;
+  min-width: 280px !important;
+  height: 100vh !important;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%) !important;
+  z-index: 99999 !important;
+  transform: translateX(100%) !important;
   transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
   display: flex;
   flex-direction: column;
-  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.15);
+  border-left: 1px solid var(--vv-border);
 }
 
 .vv-voice-panel.active {
-  transform: translateX(0);
+  transform: translateX(0) !important;
 }
 
 .vv-voice-panel-header {
@@ -424,7 +443,7 @@ html, body, .page-container {
 }
 
 .vv-transcript:empty::before {
-  content: "正在聆听…";
+  content: "等待语音输入…";
   color: var(--vv-text-secondary);
 }
 
@@ -461,12 +480,15 @@ html, body, .page-container {
 /* —— Responsive tweaks —— */
 @media (max-width: 480px) {
   .vv-panel {
-    max-width: 100%;
-    border-radius: 20px 20px 0 0;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    bottom: 80px !important;
   }
 
   .vv-voice-panel {
-    max-width: 100%;
+    width: 85% !important;
+    max-width: 85% !important;
+    min-width: unset !important;
   }
 
   .vv-fab {
@@ -540,72 +562,4 @@ html, body, .page-container {
   padding: 0 !important;
   margin: 0 !important;
   z-index: 1;
-}
-
-/* ============================================================
-   FAB Button — ensure visible above map
-   ============================================================ */
-.vv-fab {
-  position: fixed !important;
-  right: 20px !important;
-  bottom: 60px !important;
-  z-index: 99999 !important;
-  width: 64px !important;
-  height: 64px !important;
-  border-radius: 18px !important;
-  background: #ff6600 !important;
-  border: 3px solid #fff !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-}
-
-.vv-fab svg {
-  stroke: white !important;
-}
-
-.vv-fab-badge {
-  position: absolute !important;
-  top: 4px !important;
-  right: 4px !important;
-  width: 12px !important;
-  height: 12px !important;
-  background: #ff4444 !important;
-  border-radius: 50% !important;
-  border: 2px solid #fff !important;
-}
-
-/* ============================================================
-   Report Panel — ensure visible above map
-   ============================================================ */
-.vv-report-panel {
-  position: fixed !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  z-index: 99998 !important;
-  background: #fff !important;
-  border-radius: 24px 24px 0 0 !important;
-  padding: 24px 18px 40px !important;
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.15) !important;
-}
-
-.vv-report-panel.hidden {
-  transform: translateY(110%) !important;
-}
-
-/* ============================================================
-   Voice Panel — ensure visible above map
-   ============================================================ */
-.vv-voice-panel {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 99999 !important;
-  background: linear-gradient(180deg, #f7fbff 0%, #eef5ff 100%) !important;
-}
-
-.vv-voice-panel.hidden {
-  display: none !important;
 }

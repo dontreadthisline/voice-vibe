@@ -1,7 +1,7 @@
 .PHONY: frontend dev demo clean help
 
 PORT ?= 8080
-HOST ?= 0.0.0.0
+HOST ?= localhost
 
 help: ## Show available commands
 	@echo "VoiceVibe — Quick Start"
@@ -9,7 +9,7 @@ help: ## Show available commands
 	@echo "  make frontend [PORT=8080]   Start the Shiny frontend"
 	@echo "  make dev    [PORT=8080]     Start frontend in dev/reload mode"
 	@echo "  make demo                   Run voice recording demo"
-	@echo "  make clean                  Kill all residual shiny processes"
+	@echo "  make clean                  Kill all processes on port 8080"
 	@echo ""
 
 # ------------------------------------------------------------------
@@ -32,12 +32,16 @@ demo: ## Run the voice recording + transcription demo
 # ------------------------------------------------------------------
 # Cleanup
 # ------------------------------------------------------------------
-clean: ## Kill all residual Shiny / Uvicorn processes
-	@echo "🧹  Cleaning up residual processes..."
-	@ps aux | grep -E "shiny|uvicorn" | grep -v grep | awk '{print $$2}' | xargs kill -9 2>/dev/null || true
-	@sleep 0.5
-	@lsof -ti:$(PORT) 2>/dev/null | xargs kill -9 2>/dev/null || true
-	@echo "   Done"
+clean: ## Kill all processes on port 8080
+	@echo "🧹  Cleaning up processes on port 8080..."
+	@pids=$$(lsof -ti:8080 2>/dev/null); \
+	if [ -n "$$pids" ]; then \
+		echo "   Found PIDs: $$pids"; \
+		echo "$$pids" | xargs kill -9 2>/dev/null || true; \
+		echo "   Killed successfully"; \
+	else \
+		echo "   No processes found on port 8080"; \
+	fi
 
 # ------------------------------------------------------------------
 # Shortcut
