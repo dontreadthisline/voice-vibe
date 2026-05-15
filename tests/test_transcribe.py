@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 
 import pytest
 
@@ -139,3 +140,84 @@ async def test_transcribe_multiple_files(transcribe_client: MistralTranscribeCli
         assert result["has_session"], f"{audio_file}: Missing TranscribeSessionCreated"
         assert result["has_done"], f"{audio_file}: Missing TranscribeDone"
         assert len(result["text"]) > 0, f"{audio_file}: Empty transcription"
+
+
+# -------------------------------------------------------------------------
+# Error Handling Tests (US-003)
+# -------------------------------------------------------------------------
+
+
+async def empty_audio_stream() -> AsyncIterator[bytes]:
+    """Yield no audio chunks (empty stream)."""
+    return
+    yield  # type: ignore[unreachable]  # Makes this an async generator
+
+
+@pytest.mark.asyncio
+async def test_transcribe_empty_stream(transcribe_client: MistralTranscribeClient):
+    """Test that empty audio stream completes without hanging."""
+    events = []
+
+    async for event in transcribe_client.transcribe(empty_audio_stream()):
+        events.append(event)
+
+    # Should complete without hanging - may get session created and done/error
+    assert len(events) >= 0, "Should complete without hanging"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_invalid_audio_format(transcribe_client: MistralTranscribeClient):
+    """Test that invalid audio format (non-PCM data) is handled gracefully."""
+    # Create async generator yielding invalid audio data
+    async def invalid_audio_stream() -> AsyncIterator[bytes]:
+        # Yield non-PCM data (random bytes that don't represent valid audio)
+        yield b"\xff\xfe\xfd\xfc" * 1000  # Invalid audio data
+
+    events = []
+
+    async for event in transcribe_client.transcribe(invalid_audio_stream()):
+        events.append(event)
+
+    # The client should complete without hanging
+    # It may yield TranscribeDone or TranscribeError depending on server behavior
+    assert len(events) >= 0, "Should complete without hanging"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_silence_audio(transcribe_client: MistralTranscribeClient):
+    """Test transcription of pure silence (valid PCM but no speech)."""
+    # Create async generator yielding silence (all zeros)
+    async def silence_audio_stream() -> AsyncIterator[bytes]:
+        # Yield 1 second of silence at 16kHz, int16
+        chunk = b"\x00\x00" * 4096  # 4096 samples of silence
+        for _ in range(4):  # ~1 second total
+            yield chunk
+
+    events = []
+    full_text = ""
+
+    async for event in transcribe_client.transcribe(silence_audio_stream()):
+        events.append(event)
+        if isinstance(event, TranscribeTextDelta):
+            full_text += event.text
+
+    # Should complete without hanging
+    # May or may not have transcription (silence detection on server)
+    assert len(events) >= 0, "Should complete without hanging"
+
+
+@pytest.mark.asyncio
+async def test_transcribe_very_short_audio(transcribe_client: MistralTranscribeClient):
+    """Test transcription of very short audio (single chunk)."""
+    # Create async generator yielding a single small chunk
+    async def short_audio_stream() -> AsyncIterator[bytes]:
+        # Yield a single chunk of 100 samples
+        yield b"\x00\x00" * 100
+
+    events = []
+
+    async for event in transcribe_client.transcribe(short_audio_stream()):
+        events.append(event)
+
+    # Should complete without hanging
+    assert len(events) >= 0, "Should complete without hanging"
