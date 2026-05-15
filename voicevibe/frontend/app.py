@@ -127,6 +127,34 @@ def handle_stop_voice():
 
 
 # ------------------------------------------------------------------
+# Server: start voice pipeline in test mode (file-based)
+# ------------------------------------------------------------------
+@reactive.Effect
+@reactive.event(input.vv_start_voice_test)
+async def handle_start_voice_test():
+    global _voice_task
+
+    # Cancel any running pipeline
+    if _voice_task is not None and not _voice_task.done():
+        _voice_task.cancel()
+        try:
+            await _voice_task
+        except asyncio.CancelledError:
+            pass
+
+    # Reset state
+    transcript_result.set("")
+
+    # Capture session before launching background task
+    session = get_current_session()
+    await _push(session, "vv_transcript", text="")  # Clear any previous text
+    await _push(session, "vv_status", state="listening")
+
+    # Launch pipeline in test mode (file-based audio)
+    _voice_task = asyncio.create_task(_run_voice_pipeline(session, audio_source="file"))
+
+
+# ------------------------------------------------------------------
 # Voice Pipeline: AudioRecorder → Broadcaster → VAD + ASR (parallel)
 # ------------------------------------------------------------------
 async def _run_voice_pipeline(session, audio_source: str = "mic"):
