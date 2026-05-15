@@ -13,6 +13,10 @@
   var qs = function(sel) { return document.querySelector(sel); };
   var qsa = function(sel) { return document.querySelectorAll(sel); };
 
+  // —— Test mode state ——
+  var isTestMode = false;
+  var lastFabClick = 0;
+
   // —— SVG icons ——
   var ICONS = {
     fab: '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
@@ -131,14 +135,33 @@
     var voicePanel = qs(".vv-voice-panel");
     if (voicePanel) voicePanel.classList.add("active");
 
+    // Update title for test mode
+    var titleEl = qs(".vv-voice-panel-title");
+    if (titleEl) {
+      if (isTestMode) {
+        titleEl.textContent = "语音上报 (测试模式)";
+        titleEl.style.color = "#f59e0b";
+      } else {
+        titleEl.textContent = "语音上报";
+        titleEl.style.color = "";
+      }
+    }
+
     if (window.Shiny && window.Shiny.setInputValue) {
-      window.Shiny.setInputValue("vv_start_voice", { t: Date.now() }, { priority: "event" });
+      if (isTestMode) {
+        window.Shiny.setInputValue("vv_start_voice_test", { t: Date.now() }, { priority: "event" });
+      } else {
+        window.Shiny.setInputValue("vv_start_voice", { t: Date.now() }, { priority: "event" });
+      }
     }
   }
 
   function closeVoicePanel() {
     var voicePanel = qs(".vv-voice-panel");
     if (voicePanel) voicePanel.classList.remove("active");
+
+    // Reset test mode
+    isTestMode = false;
 
     if (window.Shiny && window.Shiny.setInputValue) {
       window.Shiny.setInputValue("vv_stop_voice", { t: Date.now() }, { priority: "event" });
@@ -149,6 +172,24 @@
   document.addEventListener("click", function (e) {
     var target = e.target.closest("[data-vv-action]");
     if (!target) return;
+
+    // —— Double-click FAB detection for test mode ——
+    if (target.dataset.vvAction === "open-panel") {
+      var now = Date.now();
+      if (now - lastFabClick < 500) {
+        // Double-click: trigger test mode
+        e.preventDefault();
+        e.stopPropagation();
+        isTestMode = true;
+        openVoicePanel();
+        if (window.Shiny && window.Shiny.setInputValue) {
+          window.Shiny.setInputValue("vv_start_voice_test", { t: now });
+        }
+        lastFabClick = 0;
+        return;
+      }
+      lastFabClick = now;
+    }
 
     var action = target.dataset.vvAction;
     switch (action) {
