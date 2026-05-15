@@ -148,9 +148,8 @@ async def test_transcribe_multiple_files(transcribe_client: MistralTranscribeCli
 # Run individually with: pytest tests/test_transcribe.py -k "empty or invalid or silence or short"
 # -------------------------------------------------------------------------
 
-ERROR_HANDLING_TESTS = pytest.mark.skip(
-    reason="Run error handling tests individually to avoid API rate limiting"
-)
+# Error handling tests can be run with: pytest tests/test_transcribe.py -k "empty or invalid or silence or short"
+ERROR_HANDLING_TESTS = pytest.mark.asyncio
 
 
 async def empty_audio_stream() -> AsyncIterator[bytes]:
@@ -159,7 +158,6 @@ async def empty_audio_stream() -> AsyncIterator[bytes]:
     yield  # type: ignore[unreachable]  # Makes this an async generator
 
 
-@pytest.mark.asyncio
 @ERROR_HANDLING_TESTS
 async def test_transcribe_empty_stream(transcribe_client: MistralTranscribeClient):
     """Test that empty audio stream completes without hanging."""
@@ -172,7 +170,6 @@ async def test_transcribe_empty_stream(transcribe_client: MistralTranscribeClien
     assert len(events) >= 0, "Should complete without hanging"
 
 
-@pytest.mark.asyncio
 @ERROR_HANDLING_TESTS
 async def test_transcribe_invalid_audio_format(transcribe_client: MistralTranscribeClient):
     """Test that invalid audio format (non-PCM data) is handled gracefully."""
@@ -191,7 +188,6 @@ async def test_transcribe_invalid_audio_format(transcribe_client: MistralTranscr
     assert len(events) >= 0, "Should complete without hanging"
 
 
-@pytest.mark.asyncio
 @ERROR_HANDLING_TESTS
 async def test_transcribe_silence_audio(transcribe_client: MistralTranscribeClient):
     """Test transcription of pure silence (valid PCM but no speech)."""
@@ -215,7 +211,6 @@ async def test_transcribe_silence_audio(transcribe_client: MistralTranscribeClie
     assert len(events) >= 0, "Should complete without hanging"
 
 
-@pytest.mark.asyncio
 @ERROR_HANDLING_TESTS
 async def test_transcribe_very_short_audio(transcribe_client: MistralTranscribeClient):
     """Test transcription of very short audio (single chunk)."""
