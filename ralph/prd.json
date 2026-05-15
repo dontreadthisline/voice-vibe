@@ -1,0 +1,111 @@
+{
+  "project": "VoiceVibe",
+  "branchName": "ralph/asr-vad-testing",
+  "description": "ASR and VAD Testing - Create comprehensive tests for transcribe and VAD modules using audio files",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create audio file loader utility for tests",
+      "description": "As a developer, I need a utility to load MP3 audio files and convert them to PCM format for testing.",
+      "acceptanceCriteria": [
+        "Create tests/conftest.py with audio loader fixtures",
+        "Add helper function load_audio_file() to read MP3 from /Users/didi/Downloads/audio/en/clips",
+        "Convert MP3 to PCM int16 format at 16kHz sample rate using pydub",
+        "Return async iterator of audio chunks (4096 samples each)",
+        "Select 5-10 representative audio files and list them in AUDIO_TEST_FILES constant",
+        "Add pydub to project dependencies if not present",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Test MistralTranscribeClient basic transcription",
+      "description": "As a developer, I need to verify the transcribe client can recognize speech from audio files.",
+      "acceptanceCriteria": [
+        "Create tests/test_transcribe.py",
+        "Test TranscribeSessionCreated event is received with valid request_id",
+        "Test TranscribeTextDelta events are received and contain non-empty text",
+        "Test TranscribeDone event is received at end of stream",
+        "Assert full recognized text is non-empty and contains English words",
+        "Test skips if MISTRAL_API_KEY env var is not set",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Test transcription error handling",
+      "description": "As a developer, I need to verify the transcribe client handles errors gracefully.",
+      "acceptanceCriteria": [
+        "Add test for empty audio stream in tests/test_transcribe.py",
+        "Add test for invalid audio format (non-PCM data)",
+        "Verify TranscribeError events are properly yielded for invalid input",
+        "Tests complete without hanging or crashing (use pytest timeout)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create VAD+ASR integration test with AudioBroadcaster",
+      "description": "As a developer, I need to test parallel VAD and ASR processing using AudioBroadcaster.",
+      "acceptanceCriteria": [
+        "Create tests/test_vad_asr_integration.py",
+        "Use AudioBroadcaster to split audio stream to both VAD and ASR consumers",
+        "Run VAD and ASR in parallel using asyncio.gather",
+        "Collect transcription results and VAD events concurrently",
+        "Verify both VAD events and transcription results are received",
+        "Test skips if MISTRAL_API_KEY env var is not set",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Test silence detection stops transcription",
+      "description": "As a developer, I need to verify that transcription stops when silence is detected.",
+      "acceptanceCriteria": [
+        "Add test in tests/test_vad_asr_integration.py for silence stopping transcription",
+        "Create synthetic audio: speech chunk followed by silence chunks",
+        "Verify VAD emits VADStateChange from SPEAKING to SILENCE",
+        "Verify VAD emits VADSilenceTimeout after 1.5s silence (default config)",
+        "Verify transcription stops when VADSilenceTimeout is received",
+        "Use SimpleVAD with default config (silence_threshold=0.10, silence_duration=1.5)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Test continuous speech without silence timeout",
+      "description": "As a developer, I need to verify transcription continues for continuous speech without premature timeout.",
+      "acceptanceCriteria": [
+        "Add test in tests/test_vad_asr_integration.py for continuous speech",
+        "Use real audio file containing continuous speech",
+        "Verify no VADSilenceTimeout is emitted during speech",
+        "Verify full transcription text is received",
+        "Verify TranscribeDone is received at stream end",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

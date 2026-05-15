@@ -1,0 +1,32 @@
+# Ralph Progress: ASR and VAD Testing
+
+## Codebase Patterns
+- pydub doesn't ship with type stubs, use `# type: ignore[import-not-found]` for imports
+- Audio test files are located at `/Users/didi/Downloads/audio/en/clips`
+- Tests skip if MISTRAL_API_KEY is not set
+
+## Status: In Progress
+
+## Current Story: US-002
+
+## Completed Stories: US-001
+
+## Notes:
+- Audio files located at: /Users/didi/Downloads/audio/en/clips
+- Tests will skip if MISTRAL_API_KEY is not set
+- Using pydub for MP3 to PCM conversion
+
+---
+## 2026-05-15 - US-001
+- Implemented audio file loader utility in tests/conftest.py
+- Added pydub dependency for MP3 to PCM conversion
+- Created load_audio_file() to load MP3 and convert to PCM int16 at 16kHz
+- Created audio_chunk_stream() async generator yielding 4096-sample chunks
+- Created load_audio_as_stream() convenience function
+- Selected 8 representative audio files in AUDIO_TEST_FILES constant
+- **Learnings for future iterations:**
+  - pydub emits SyntaxWarning on Python 3.12 (deprecated regex escape sequences) - this is expected
+  - pydub uses deprecated `audioop` module (will be removed in Python 3.13)
+  - Chunk size is 8192 bytes (4096 samples * 2 bytes for int16)
+  - The test audio files range from 14 KB to 78 KB
+---
