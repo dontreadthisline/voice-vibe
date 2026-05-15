@@ -18,12 +18,14 @@
 
 ---
 ## 2026-05-15 - US-004
-- Created tests/test_vad_asr_integration.py with 3 integration tests
+- Created tests/test_vad_asr_integration.py with 4 integration tests
 - Test parallel VAD and ASR processing using AudioBroadcaster
 - Test with longer audio file (78 KB)
 - Test with multiple audio files sequentially
+- Test that VAD detects speech state changes during audio
 - Use asyncio.gather to run broadcast, VAD, and ASR concurrently
 - Verify both VAD events and transcription results are received
+- All 4 tests pass
 - **Learnings for future iterations:**
   - AudioBroadcaster requires subscribing before broadcast starts
   - Use asyncio.gather for parallel processing of broadcast and consumers

@@ -1,4 +1,4 @@
-"""Integration tests for VAD and ASR working together."""
+"""Integration tests for VAD and ASR working together with AudioBroadcaster."""
 
 from __future__ import annotations
 
@@ -13,12 +13,13 @@ from voicevibe.config import TranscribeModelConfig, TranscribeProviderConfig
 from voicevibe.transcribe.mistral_transcribe_client import MistralTranscribeClient
 from voicevibe.transcribe.transcribe_client_port import (
     TranscribeDone,
+    TranscribeSessionCreated,
     TranscribeTextDelta,
 )
 from voicevibe.vad import SimpleVAD
-from voicevibe.vad.events import VADEvent, VADSilenceTimeout
+from voicevibe.vad.events import VADStateChange, VADSilenceTimeout
 
-from conftest import AUDIO_TEST_FILES, load_audio_as_stream
+from conftest import AUDIO_TEST_FILES, load_audio_file, audio_chunk_stream
 
 # Skip all tests in this module if MISTRAL_API_KEY is not set
 pytestmark = pytest.mark.skipif(
@@ -59,139 +60,202 @@ def vad() -> SimpleVAD:
 async def test_vad_asr_parallel_processing(
     transcribe_client: MistralTranscribeClient, vad: SimpleVAD
 ):
-    """Test parallel VAD and ASR processing using AudioBroadcaster."""
+    """Test VAD and ASR process audio in parallel using AudioBroadcaster."""
     audio_file = AUDIO_TEST_FILES[0]
+    audio_data = load_audio_file(audio_file)
+
     broadcaster = AudioBroadcaster()
 
-    # Create two subscribers: one for VAD, one for ASR
+    # Subscribe both VAD and ASR to the broadcast
     vad_stream = broadcaster.subscribe()
     asr_stream = broadcaster.subscribe()
 
-    transcription_result = []
-    vad_events = []
+    vad_events: list[VADStateChange | VADSilenceTimeout] = []
+    transcription_events: list[object] = []
+    full_text = ""
 
     async def run_vad() -> None:
-        """Collect VAD events."""
+        """Process audio stream with VAD and collect events."""
         async for event in vad.detect(vad_stream):
             vad_events.append(event)
 
     async def run_asr() -> None:
-        """Collect transcription results."""
+        """Process audio stream with ASR and collect events."""
+        nonlocal full_text
         async for event in transcribe_client.transcribe(asr_stream):
+            transcription_events.append(event)
             if isinstance(event, TranscribeTextDelta):
-                transcription_result.append(event.text)
-            elif isinstance(event, TranscribeDone):
-                break
+                full_text += event.text
 
-    # Run broadcast and both consumers in parallel
-    broadcast_task = asyncio.create_task(
-        broadcaster.broadcast(load_audio_as_stream(audio_file))
+    async def broadcast_audio() -> None:
+        """Broadcast audio chunks to all subscribers."""
+        await broadcaster.broadcast(audio_chunk_stream(audio_data))
+
+    # Run all three tasks concurrently using asyncio.gather
+    await asyncio.gather(
+        broadcast_audio(),
+        run_vad(),
+        run_asr(),
     )
-    vad_task = asyncio.create_task(run_vad())
-    asr_task = asyncio.create_task(run_asr())
 
-    # Wait for broadcast to complete
-    await broadcast_task
+    # Verify VAD events were received
+    assert len(vad_events) >= 1, "Expected at least one VAD event"
 
-    # Wait for both consumers
-    await asyncio.gather(vad_task, asr_task)
+    # Verify transcription events were received
+    assert len(transcription_events) >= 1, "Expected at least one transcription event"
 
-    # Verify both VAD events and transcription results are received
-    assert len(vad_events) >= 0, "VAD should process the stream"
-    assert len(transcription_result) >= 0, "ASR should process the stream"
+    # Check for TranscribeSessionCreated
+    session_created = any(
+        isinstance(e, TranscribeSessionCreated) for e in transcription_events
+    )
+    assert session_created, "Expected TranscribeSessionCreated event"
 
-    # Verify we got some transcription
-    full_text = "".join(transcription_result)
-    assert len(full_text) > 0, "Should have transcription text"
+    # Check for TranscribeDone
+    has_done = any(isinstance(e, TranscribeDone) for e in transcription_events)
+    assert has_done, "Expected TranscribeDone event"
+
+    # Verify transcription produced text
+    assert len(full_text) > 0, "Expected non-empty transcription"
 
 
 @pytest.mark.asyncio
 async def test_vad_asr_with_longer_audio(
     transcribe_client: MistralTranscribeClient, vad: SimpleVAD
 ):
-    """Test VAD and ASR with a longer audio file."""
-    # Use a longer audio file
-    audio_file = AUDIO_TEST_FILES[5]  # 78 KB file (longer)
+    """Test VAD and ASR with a longer audio file using asyncio.gather."""
+    # Use a longer audio file (78 KB)
+    audio_file = AUDIO_TEST_FILES[5]
+    audio_data = load_audio_file(audio_file)
+
     broadcaster = AudioBroadcaster()
 
     vad_stream = broadcaster.subscribe()
     asr_stream = broadcaster.subscribe()
 
-    transcription_result = []
-    vad_events = []
-    state_changes = []
+    vad_events: list[VADStateChange | VADSilenceTimeout] = []
+    transcription_events: list[object] = []
+    full_text = ""
 
     async def run_vad() -> None:
-        """Collect VAD events."""
+        """Process audio stream with VAD and collect events."""
         async for event in vad.detect(vad_stream):
             vad_events.append(event)
-            # Track state changes
-            if hasattr(event, "new_state"):
-                state_changes.append(event)
 
     async def run_asr() -> None:
-        """Collect transcription results."""
+        """Process audio stream with ASR and collect events."""
+        nonlocal full_text
         async for event in transcribe_client.transcribe(asr_stream):
+            transcription_events.append(event)
             if isinstance(event, TranscribeTextDelta):
-                transcription_result.append(event.text)
-            elif isinstance(event, TranscribeDone):
-                break
+                full_text += event.text
 
-    # Run all in parallel
-    broadcast_task = asyncio.create_task(
-        broadcaster.broadcast(load_audio_as_stream(audio_file))
+    async def broadcast_audio() -> None:
+        """Broadcast audio chunks to all subscribers."""
+        await broadcaster.broadcast(audio_chunk_stream(audio_data))
+
+    # Run all three tasks concurrently using asyncio.gather
+    await asyncio.gather(
+        broadcast_audio(),
+        run_vad(),
+        run_asr(),
     )
-    vad_task = asyncio.create_task(run_vad())
-    asr_task = asyncio.create_task(run_asr())
-
-    await broadcast_task
-    await asyncio.gather(vad_task, asr_task)
 
     # Verify results
-    full_text = "".join(transcription_result)
-    assert len(full_text) > 0, "Should have transcription text"
+    assert len(vad_events) >= 1, "Expected at least one VAD event"
+    assert len(transcription_events) >= 1, "Expected at least one transcription event"
+    assert len(full_text) > 0, "Expected non-empty transcription"
 
 
 @pytest.mark.asyncio
-async def test_vad_asr_multiple_files_parallel(
+async def test_vad_asr_multiple_files(
     transcribe_client: MistralTranscribeClient, vad: SimpleVAD
 ):
-    """Test VAD and ASR with multiple audio files sequentially."""
-    results = {}
+    """Test parallel VAD and ASR processing with multiple audio files."""
+    results = []
 
-    for audio_file in AUDIO_TEST_FILES[:3]:
+    for audio_file in AUDIO_TEST_FILES[:3]:  # Test first 3 files
+        audio_data = load_audio_file(audio_file)
         broadcaster = AudioBroadcaster()
+
         vad_stream = broadcaster.subscribe()
         asr_stream = broadcaster.subscribe()
 
-        transcription_result = []
-        vad_events = []
+        vad_events: list[VADStateChange | VADSilenceTimeout] = []
+        transcription_events: list[object] = []
+        full_text = ""
 
         async def run_vad() -> None:
             async for event in vad.detect(vad_stream):
                 vad_events.append(event)
 
         async def run_asr() -> None:
+            nonlocal full_text
             async for event in transcribe_client.transcribe(asr_stream):
+                transcription_events.append(event)
                 if isinstance(event, TranscribeTextDelta):
-                    transcription_result.append(event.text)
-                elif isinstance(event, TranscribeDone):
-                    break
+                    full_text += event.text
 
-        broadcast_task = asyncio.create_task(
-            broadcaster.broadcast(load_audio_as_stream(audio_file))
+        async def broadcast_audio() -> None:
+            await broadcaster.broadcast(audio_chunk_stream(audio_data))
+
+        await asyncio.gather(
+            broadcast_audio(),
+            run_vad(),
+            run_asr(),
         )
-        vad_task = asyncio.create_task(run_vad())
-        asr_task = asyncio.create_task(run_asr())
 
-        await broadcast_task
-        await asyncio.gather(vad_task, asr_task)
-
-        results[audio_file] = {
-            "text": "".join(transcription_result),
+        results.append({
+            "file": audio_file,
             "vad_events": len(vad_events),
-        }
+            "transcription_events": len(transcription_events),
+            "text": full_text,
+        })
 
     # Verify all files produced results
-    for audio_file, result in results.items():
-        assert len(result["text"]) > 0, f"{audio_file}: Should have transcription"
+    for result in results:
+        assert result["vad_events"] >= 1, f"{result['file']}: Expected VAD events"
+        assert result["transcription_events"] >= 1, f"{result['file']}: Expected transcription events"
+        text: str = result["text"]
+        assert len(text) > 0, f"{result['file']}: Expected transcription text"
+
+
+@pytest.mark.asyncio
+async def test_vad_detects_speech_state_changes(
+    transcribe_client: MistralTranscribeClient, vad: SimpleVAD
+):
+    """Test that VAD correctly detects speech state changes during audio."""
+    audio_file = AUDIO_TEST_FILES[0]
+    audio_data = load_audio_file(audio_file)
+
+    broadcaster = AudioBroadcaster()
+    vad_stream = broadcaster.subscribe()
+    asr_stream = broadcaster.subscribe()
+
+    vad_events: list[VADStateChange | VADSilenceTimeout] = []
+
+    async def run_vad() -> None:
+        async for event in vad.detect(vad_stream):
+            vad_events.append(event)
+
+    async def run_asr() -> None:
+        async for _ in transcribe_client.transcribe(asr_stream):
+            pass  # Just consume the stream
+
+    async def broadcast_audio() -> None:
+        await broadcaster.broadcast(audio_chunk_stream(audio_data))
+
+    await asyncio.gather(
+        broadcast_audio(),
+        run_vad(),
+        run_asr(),
+    )
+
+    # Verify we got VADStateChange events
+    state_changes = [e for e in vad_events if isinstance(e, VADStateChange)]
+    assert len(state_changes) >= 1, "Expected at least one VADStateChange"
+
+    # The audio file should have speech, so we expect SPEAKING state at some point
+    has_speaking = any(
+        sc.new_state.voice_state.value == "speaking" for sc in state_changes
+    )
+    assert has_speaking, "Expected SPEAKING state to be detected"
