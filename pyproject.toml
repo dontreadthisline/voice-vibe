@@ -14,6 +14,7 @@ dependencies = [
   "gradio>=6.11.0",
   "maplibre[shiny]>=0.3.6",
   "pydub>=0.25.1",
+  "python-socks>=2.8.1",
 ]
 
 [tool.setuptools.packages.find]
