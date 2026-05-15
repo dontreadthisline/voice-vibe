@@ -30,14 +30,16 @@ from shiny.session import get_current_session
 from voicevibe.audio_broadcaster import AudioBroadcaster
 from voicevibe.audio_recorder import AudioRecorder, RecordingMode
 from voicevibe.audio_recorder.audio_recorder_port import IncompatibleSampleRateError
-from voicevibe.config import TranscribeModelConfig, TranscribeProviderConfig
+from voicevibe.config import ModelConfig, ProviderConfig, TranscribeModelConfig, TranscribeProviderConfig
 from voicevibe.frontend.audio_file_streamer import AudioFileStreamer
+from voicevibe.llm.backend.mistral import MistralBackend
 from voicevibe.transcribe import MistralTranscribeClient
 from voicevibe.transcribe.transcribe_client_port import (
     TranscribeDone,
     TranscribeError,
     TranscribeTextDelta,
 )
+from voicevibe.types import LLMMessage, Role
 from voicevibe.vad import SimpleVAD, VADSilenceTimeout, VADStateChange, VoiceState
 
 # ------------------------------------------------------------------
@@ -311,6 +313,49 @@ async def _consume_asr(
             await _push(session, "vv_transcript", text=f"转录错误: {event.message}")
             break
     return result
+
+
+# —— LLM streaming ——
+async def _call_llm_streaming(session, transcript: str) -> None:
+    """Send transcript to LLM and stream response to frontend."""
+    api_key = os.environ.get("MISTRAL_API_KEY", "")
+    if not api_key:
+        await _push(session, "vv_llm_error", text="错误: 未配置 MISTRAL_API_KEY")
+        return
+
+    provider = ProviderConfig(
+        name="mistral",
+        api_base="https://api.mistral.ai",
+        api_key_env_var="MISTRAL_API_KEY",
+    )
+    model = ModelConfig(
+        name="mistral-small-latest",
+        provider="mistral",
+        alias="mistral-small",
+    )
+
+    async with MistralBackend(provider=provider) as backend:
+        messages = [LLMMessage(role=Role.user, content=transcript)]
+
+        try:
+            await _push(session, "vv_llm_start", question=transcript)
+
+            async for chunk in backend.complete_streaming(
+                model=model,
+                messages=messages,
+                temperature=0.7,
+                tools=None,
+                max_tokens=1024,
+                tool_choice=None,
+                extra_headers=None,
+            ):
+                if chunk.message.content:
+                    await _push(session, "vv_llm_chunk", text=chunk.message.content)
+
+            await _push(session, "vv_llm_done")
+
+        except Exception as exc:
+            await _push(session, "vv_llm_error", text=f"LLM错误: {exc}")
 
 
 # ------------------------------------------------------------------
