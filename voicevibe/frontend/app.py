@@ -227,6 +227,7 @@ async def _run_voice_pipeline(session, audio_source: str = "mic"):
     vad_task = asyncio.create_task(_consume_vad(session, vad, vad_stream))
     asr_task = asyncio.create_task(_consume_asr(session, client, asr_stream))
 
+    transcript = ""
     try:
         # Wait for VAD to decide
         await vad_task
@@ -237,7 +238,7 @@ async def _run_voice_pipeline(session, audio_source: str = "mic"):
 
         # Wait for remaining tasks to finish
         await broadcast_task
-        await asr_task
+        transcript = await asr_task
 
     except asyncio.CancelledError:
         if recorder is not None and recorder.is_recording:
@@ -245,9 +246,19 @@ async def _run_voice_pipeline(session, audio_source: str = "mic"):
         broadcaster.close()
         raise
 
-    except (_NoSpeech, _SilenceAfterSpeech):
-        # Normal flow control - no error to display
+    except _NoSpeech:
+        # No speech detected - no error to display
         pass
+
+    except _SilenceAfterSpeech:
+        # Speech completed - wait for ASR to finish then call LLM
+        await broadcast_task
+        transcript = await asr_task
+
+        if transcript:
+            await _push(session, "vv_status", state="llm_streaming")
+            await _call_llm_streaming(session, transcript)
+            await _push(session, "vv_status", state="llm_done")
 
     except Exception as exc:
         await _push(session, "vv_transcript", text=f"识别出错: {exc}")
