@@ -1,0 +1,83 @@
+{
+  "project": "voice-vibe",
+  "branchName": "ralph/frontend-audio-file-test",
+  "description": "Frontend Audio File Test Mode - 使用预设音频文件流替代麦克风输入,测试 VAD + ASR 管道",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add file-based audio stream source",
+      "description": "As a developer, I need an async generator that streams audio from a preset file to test the ASR pipeline without microphone input.",
+      "acceptanceCriteria": [
+        "Create voicevibe/frontend/audio_file_streamer.py with AudioFileStreamer class",
+        "Load MP3 using pydub and convert to PCM int16 (16kHz, mono)",
+        "Yield audio chunks of 4096 samples (8192 bytes) each",
+        "Add configurable chunk_delay parameter (default 0.1s) to simulate real-time streaming",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Add test mode toggle to voice pipeline",
+      "description": "As a developer, I need _run_voice_pipeline to support both mic and file modes so I can switch for testing.",
+      "acceptanceCriteria": [
+        "Modify _run_voice_pipeline signature to add audio_source parameter ('mic' | 'file', default 'mic')",
+        "When audio_source='file', use AudioFileStreamer instead of AudioRecorder",
+        "File mode skips AudioRecorder start/stop logic",
+        "Broadcaster, VAD, and ASR processing logic remains unchanged",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Add hidden test trigger to frontend",
+      "description": "As a developer, I need a hidden entry point to trigger file mode for quick pipeline verification.",
+      "acceptanceCriteria": [
+        "In voice.js, detect double-click on FAB (two clicks within 500ms)",
+        "Double-click sends vv_start_voice_test message to backend",
+        "Show '测试模式' indicator in voice panel when test mode is active",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Wire test mode trigger to backend",
+      "description": "As a developer, I need the backend to respond to test mode trigger and start the file stream pipeline.",
+      "acceptanceCriteria": [
+        "Add reactive event handler for input.vv_start_voice_test",
+        "Call _run_voice_pipeline(session, audio_source='file')",
+        "Use test file: /Users/didi/Downloads/audio/en/clips/common_voice_en_42696072.mp3",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Verify end-to-end file test flow",
+      "description": "As a developer, I need to verify the file test mode runs completely with VAD + ASR working together.",
+      "acceptanceCriteria": [
+        "Double-click FAB triggers test mode",
+        "Voice panel opens showing '测试模式' indicator",
+        "Transcription text updates in real-time on panel",
+        "VAD detects speech/silence correctly",
+        "Panel auto-closes or shows done state after silence timeout",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
