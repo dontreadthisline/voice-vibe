@@ -7,15 +7,27 @@
 
 ## Status: In Progress
 
-## Current Story: US-002
+## Current Story: US-003
 
-## Completed Stories: US-001
+## Completed Stories: US-001, US-002
 
 ## Notes:
 - Audio files located at: /Users/didi/Downloads/audio/en/clips
 - Tests will skip if MISTRAL_API_KEY is not set
 - Using pydub for MP3 to PCM conversion
 
+---
+## 2026-05-15 - US-002
+- Created tests/test_transcribe.py with 5 tests for MistralTranscribeClient
+- Added python-socks dependency for SOCKS proxy support
+- Tests verify: TranscribeSessionCreated, TranscribeTextDelta, TranscribeDone events
+- Tests verify full text is non-empty and contains English words
+- Used correct model name: voxtral-mini-transcribe-realtime-2602
+- All tests pass (5 transcribe tests + 32 other tests)
+- **Learnings for future iterations:**
+  - Model name must be `voxtral-mini-transcribe-realtime-2602`, not `voxtral-mini-latest`
+  - Tests require MISTRAL_API_KEY env var - they skip automatically if not set
+  - websocket connection needs python-socks package for proxy support
 ---
 ## 2026-05-15 - US-001
 - Implemented audio file loader utility in tests/conftest.py
