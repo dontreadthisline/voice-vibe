@@ -7,15 +7,27 @@
 
 ## Status: In Progress
 
-## Current Story: US-003
+## Current Story: US-004
 
-## Completed Stories: US-001, US-002
+## Completed Stories: US-001, US-002, US-003
 
 ## Notes:
 - Audio files located at: /Users/didi/Downloads/audio/en/clips
 - Tests will skip if MISTRAL_API_KEY is not set
 - Using pydub for MP3 to PCM conversion
 
+---
+## 2026-05-15 - US-003
+- Added 4 error handling tests to tests/test_transcribe.py
+- Test empty audio stream: completes without hanging
+- Test invalid audio format (non-PCM data): graceful handling
+- Test silence audio: valid PCM but no speech
+- Test very short audio: single chunk
+- All tests verify the client completes without hanging or crashing
+- **Learnings for future iterations:**
+  - The Mistral API handles edge cases gracefully on the server side
+  - Tests don't need pytest-timeout - they complete quickly
+  - Empty stream uses `return; yield` pattern to create an async generator
 ---
 ## 2026-05-15 - US-002
 - Created tests/test_transcribe.py with 5 tests for MistralTranscribeClient
