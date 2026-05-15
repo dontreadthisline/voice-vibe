@@ -7,15 +7,28 @@
 
 ## Status: In Progress
 
-## Current Story: US-005
+## Current Story: US-006
 
-## Completed Stories: US-001, US-002, US-003, US-004
+## Completed Stories: US-001, US-002, US-003, US-004, US-005
 
 ## Notes:
 - Audio files located at: /Users/didi/Downloads/audio/en/clips
 - Tests will skip if MISTRAL_API_KEY is not set
 - Using pydub for MP3 to PCM conversion
 
+---
+## 2026-05-15 - US-005
+- Added test_silence_detection_stops_transcription to tests/test_vad_asr_integration.py
+- Created create_speech_with_silence_audio() helper to generate synthetic audio
+- Test verifies VAD emits VADStateChange from SPEAKING to SILENCE
+- Test verifies VAD emits VADSilenceTimeout after 1.5s silence (default config)
+- Test verifies transcription stops when VADSilenceTimeout is received
+- Uses broadcaster.close() to stop ASR stream when silence timeout occurs
+- All 5 integration tests pass
+- **Learnings for future iterations:**
+  - VADSilenceTimeout triggers after configured silence_duration threshold
+  - Can use broadcaster.close() to stop consumers early
+  - Synthetic audio creation uses b"\x00\x00" * samples for silence
 ---
 ## 2026-05-15 - US-004
 - Created tests/test_vad_asr_integration.py with 4 integration tests
