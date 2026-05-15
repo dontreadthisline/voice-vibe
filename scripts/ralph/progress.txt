@@ -1,0 +1,56 @@
+# Ralph Progress: frontend-audio-file-test
+
+Branch: ralph/frontend-audio-file-test
+Started: 2026-05-15
+
+---
+
+## Codebase Patterns
+- VoiceVibe frontend uses Shiny Express with reactive.Effect for event handling
+- Audio pipeline: AudioRecorder → AudioBroadcaster → VAD + ASR (parallel consumers)
+- Frontend JS is UI-only, all audio logic runs in Python backend
+- Use pydub for audio file loading and conversion
+
+---
+
+## US-001: Add file-based audio stream source
+Status: COMPLETED
+Started: 2026-05-15 15:15
+Completed: 2026-05-15 15:17
+Notes: Created AudioFileStreamer class in voicevibe/frontend/audio_file_streamer.py
+
+---
+
+## US-002: Add test mode toggle to voice pipeline
+Status: COMPLETED
+Started: 2026-05-15 15:18
+Completed: 2026-05-15 15:20
+Notes: Modified _run_voice_pipeline to accept audio_source parameter
+
+---
+
+## US-003: Add hidden test trigger to frontend
+Status: COMPLETED
+Started: 2026-05-15 15:22
+Completed: 2026-05-15 15:24
+Notes: Implemented double-click detection on FAB, test mode indicator in UI
+
+---
+
+## US-004: Wire test mode trigger to backend
+Status: COMPLETED
+Started: 2026-05-15 15:25
+Completed: 2026-05-15 15:26
+Notes: Added handle_start_voice_test reactive event handler
+
+---
+
+## US-005: Verify end-to-end file test flow
+Status: COMPLETED
+Started: 2026-05-15 15:28
+Completed: 2026-05-15 15:30
+Notes: Browser verified - transcription shows "But then something even more extraordinary happened."
+
+---
+
+<promise>COMPLETE</promise>

@@ -31,6 +31,7 @@ from voicevibe.audio_broadcaster import AudioBroadcaster
 from voicevibe.audio_recorder import AudioRecorder, RecordingMode
 from voicevibe.audio_recorder.audio_recorder_port import IncompatibleSampleRateError
 from voicevibe.config import TranscribeModelConfig, TranscribeProviderConfig
+from voicevibe.frontend.audio_file_streamer import AudioFileStreamer
 from voicevibe.transcribe import MistralTranscribeClient
 from voicevibe.transcribe.transcribe_client_port import (
     TranscribeDone,
@@ -126,32 +127,70 @@ def handle_stop_voice():
 
 
 # ------------------------------------------------------------------
+# Server: start voice pipeline in test mode (file-based)
+# ------------------------------------------------------------------
+@reactive.Effect
+@reactive.event(input.vv_start_voice_test)
+async def handle_start_voice_test():
+    global _voice_task
+
+    # Cancel any running pipeline
+    if _voice_task is not None and not _voice_task.done():
+        _voice_task.cancel()
+        try:
+            await _voice_task
+        except asyncio.CancelledError:
+            pass
+
+    # Reset state
+    transcript_result.set("")
+
+    # Capture session before launching background task
+    session = get_current_session()
+    await _push(session, "vv_transcript", text="")  # Clear any previous text
+    await _push(session, "vv_status", state="listening")
+
+    # Launch pipeline in test mode (file-based audio)
+    _voice_task = asyncio.create_task(_run_voice_pipeline(session, audio_source="file"))
+
+
+# ------------------------------------------------------------------
 # Voice Pipeline: AudioRecorder → Broadcaster → VAD + ASR (parallel)
 # ------------------------------------------------------------------
-async def _run_voice_pipeline(session):
+async def _run_voice_pipeline(session, audio_source: str = "mic"):
     SAMPLE_RATE = 16000
     SILENCE_DURATION = 3.0
     MAX_DURATION = 30.0
 
-    recorder = AudioRecorder()
     broadcaster = AudioBroadcaster()
+    recorder: AudioRecorder | None = None
 
     actual_rate = SAMPLE_RATE
-    try:
-        recorder.start(
-            mode=RecordingMode.STREAM,
-            sample_rate=SAMPLE_RATE,
-            channels=1,
-            max_duration=MAX_DURATION,
-        )
-    except IncompatibleSampleRateError as exc:
-        actual_rate = exc.fallback_sample_rate
-        recorder.start(
-            mode=RecordingMode.STREAM,
-            sample_rate=actual_rate,
-            channels=1,
-            max_duration=MAX_DURATION,
-        )
+
+    # Create audio stream based on source type
+    if audio_source == "file":
+        # File mode: use AudioFileStreamer
+        streamer = AudioFileStreamer()
+        audio_stream = streamer.audio_stream()
+    else:
+        # Mic mode: use AudioRecorder
+        recorder = AudioRecorder()
+        try:
+            recorder.start(
+                mode=RecordingMode.STREAM,
+                sample_rate=SAMPLE_RATE,
+                channels=1,
+                max_duration=MAX_DURATION,
+            )
+        except IncompatibleSampleRateError as exc:
+            actual_rate = exc.fallback_sample_rate
+            recorder.start(
+                mode=RecordingMode.STREAM,
+                sample_rate=actual_rate,
+                channels=1,
+                max_duration=MAX_DURATION,
+            )
+        audio_stream = recorder.audio_stream()
 
     vad = SimpleVAD(
         silence_threshold=0.10,  # Must be above ambient noise (~0.05)
@@ -182,7 +221,7 @@ async def _run_voice_pipeline(session):
     vad_stream = broadcaster.subscribe()
     asr_stream = broadcaster.subscribe()
 
-    broadcast_task = asyncio.create_task(broadcaster.broadcast(recorder.audio_stream()))
+    broadcast_task = asyncio.create_task(broadcaster.broadcast(audio_stream))
     vad_task = asyncio.create_task(_consume_vad(session, vad, vad_stream))
     asr_task = asyncio.create_task(_consume_asr(session, client, asr_stream))
 
@@ -190,8 +229,8 @@ async def _run_voice_pipeline(session):
         # Wait for VAD to decide
         await vad_task
 
-        # VAD finished — stop recording gracefully
-        if recorder.is_recording:
+        # VAD finished — stop recording gracefully (mic mode only)
+        if recorder is not None and recorder.is_recording:
             recorder.stop(wait_for_queue_drained=True)
 
         # Wait for remaining tasks to finish
@@ -199,7 +238,7 @@ async def _run_voice_pipeline(session):
         await asr_task
 
     except asyncio.CancelledError:
-        if recorder.is_recording:
+        if recorder is not None and recorder.is_recording:
             recorder.cancel()
         broadcaster.close()
         raise
@@ -213,7 +252,7 @@ async def _run_voice_pipeline(session):
         await _push(session, "vv_status", state="error")
 
     finally:
-        if recorder.is_recording:
+        if recorder is not None and recorder.is_recording:
             recorder.cancel()
         broadcaster.close()
         await asyncio.sleep(0.1)
