@@ -108,6 +108,16 @@
           '<div class="vv-wave-bar"></div>' +
         '</div>' +
         '<div class="vv-transcript" id="transcript-box"></div>' +
+        '<div class="vv-qa-container" id="qa-container" style="display:none;">' +
+          '<div class="vv-qa-section">' +
+            '<div class="vv-qa-label">问题:</div>' +
+            '<div class="vv-qa-text" id="llm-question"></div>' +
+          '</div>' +
+          '<div class="vv-qa-section">' +
+            '<div class="vv-qa-label">回答:</div>' +
+            '<div class="vv-qa-text" id="llm-answer"></div>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       '<div class="vv-voice-panel-footer">' +
         '<button class="vv-switch-btn" data-vv-action="close-voice">关闭</button>' +
@@ -132,6 +142,26 @@
 
   function openVoicePanel() {
     closeReportPanel();
+
+    // Reset waveform state
+    var waveform = qs(".vv-waveform");
+    if (waveform) {
+      waveform.classList.remove("animating");
+      waveform.style.display = "";
+    }
+
+    // Clear transcript
+    var transcriptEl = qs("#transcript-box");
+    if (transcriptEl) transcriptEl.textContent = "";
+
+    // Clear Q&A content
+    var qaContainer = qs("#qa-container");
+    var questionEl = qs("#llm-question");
+    var answerEl = qs("#llm-answer");
+    if (qaContainer) qaContainer.style.display = "none";
+    if (questionEl) questionEl.textContent = "";
+    if (answerEl) answerEl.textContent = "";
+
     var voicePanel = qs(".vv-voice-panel");
     if (voicePanel) voicePanel.classList.add("active");
 
@@ -269,6 +299,35 @@
       Shiny.addCustomMessageHandler("vv_close_voice", function () {
         var panel = qs(".vv-voice-panel");
         if (panel) panel.classList.remove("active");
+      });
+
+      // LLM streaming start
+      Shiny.addCustomMessageHandler("vv_llm_start", function (msg) {
+        var qaContainer = qs("#qa-container");
+        var questionEl = qs("#llm-question");
+        var answerEl = qs("#llm-answer");
+        if (qaContainer) qaContainer.style.display = "";
+        if (questionEl) questionEl.textContent = msg.question || "";
+        if (answerEl) answerEl.textContent = "";
+      });
+
+      // LLM streaming chunk
+      Shiny.addCustomMessageHandler("vv_llm_chunk", function (msg) {
+        var answerEl = qs("#llm-answer");
+        if (answerEl && msg.text) answerEl.textContent += msg.text;
+      });
+
+      // LLM streaming done
+      Shiny.addCustomMessageHandler("vv_llm_done", function () {
+        // Q&A remains visible, no further changes needed
+      });
+
+      // LLM error
+      Shiny.addCustomMessageHandler("vv_llm_error", function (msg) {
+        var qaContainer = qs("#qa-container");
+        var answerEl = qs("#llm-answer");
+        if (qaContainer) qaContainer.style.display = "";
+        if (answerEl) answerEl.textContent = msg.text || "LLM请求出错";
       });
     } catch(e) {
       console.error("[VoiceVibe] Shiny handler registration failed:", e);

@@ -447,6 +447,43 @@ html, body, .page-container {
   color: var(--vv-text-secondary);
 }
 
+/* —— Q&A Container —— */
+.vv-qa-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.vv-qa-section {
+  background: #ffffff;
+  border-radius: var(--vv-radius-sm);
+  border: 1px solid var(--vv-border);
+  padding: 14px 16px;
+}
+
+.vv-qa-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vv-text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vv-qa-text {
+  font-size: 14px;
+  color: var(--vv-text);
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.vv-qa-text:empty::before {
+  content: "…";
+  color: var(--vv-text-secondary);
+}
+
 /* —— Status Badge —— */
 .vv-status {
   display: inline-flex;
