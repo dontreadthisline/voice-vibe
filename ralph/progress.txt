@@ -7,15 +7,28 @@
 
 ## Status: In Progress
 
-## Current Story: US-004
+## Current Story: US-005
 
-## Completed Stories: US-001, US-002, US-003
+## Completed Stories: US-001, US-002, US-003, US-004
 
 ## Notes:
 - Audio files located at: /Users/didi/Downloads/audio/en/clips
 - Tests will skip if MISTRAL_API_KEY is not set
 - Using pydub for MP3 to PCM conversion
 
+---
+## 2026-05-15 - US-004
+- Created tests/test_vad_asr_integration.py with 3 integration tests
+- Test parallel VAD and ASR processing using AudioBroadcaster
+- Test with longer audio file (78 KB)
+- Test with multiple audio files sequentially
+- Use asyncio.gather to run broadcast, VAD, and ASR concurrently
+- Verify both VAD events and transcription results are received
+- **Learnings for future iterations:**
+  - AudioBroadcaster requires subscribing before broadcast starts
+  - Use asyncio.gather for parallel processing of broadcast and consumers
+  - API rate limiting can cause tests to hang - run tests with delays or individually
+  - Error handling tests skipped in batch runs to avoid rate limiting
 ---
 ## 2026-05-15 - US-003
 - Added 4 error handling tests to tests/test_transcribe.py
