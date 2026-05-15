@@ -15,8 +15,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented AudioFileStreamer class with async audio_stream() method"
     },
     {
       "id": "US-002",
@@ -30,8 +30,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added audio_source parameter to _run_voice_pipeline, conditional logic for mic/file modes"
     },
     {
       "id": "US-003",
@@ -45,8 +45,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Implemented double-click detection, test mode flag, and UI indicator"
     },
     {
       "id": "US-004",
@@ -59,8 +59,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Added handle_start_voice_test event handler that triggers file mode pipeline"
     },
     {
       "id": "US-005",
@@ -76,8 +76,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Browser verified: title shows '语音上报 (测试模式)', transcription shows 'But then something even more extraordinary happened.'"
     }
   ]
 }
