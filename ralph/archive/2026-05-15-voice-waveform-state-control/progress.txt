@@ -1,0 +1,11 @@
+# Ralph Progress Log
+Started: 2026年 5月15日 星期五 23时30分00秒 CST
+
+## Codebase Patterns
+- Shiny custom messages use `Shiny.addCustomMessageHandler(kind, callback)` pattern in voice.js
+- Backend sends messages via `await session.send_custom_message(kind, data)` pattern
+- LLM backends: MistralBackend.complete_streaming() yields LLMChunk objects with message.content
+- Config pattern: ProviderConfig for API settings, ModelConfig for model settings
+- LLM streaming: async generator that yields chunks incrementally
+
+---

@@ -1,9 +1,13 @@
-# Ralph Progress: ASR and VAD Testing
+# Ralph Progress Log
+Started: 2026年 5月15日 星期五 23时45分00秒 CST
 
 ## Codebase Patterns
-- pydub doesn't ship with type stubs, use `# type: ignore[import-not-found]` for imports
-- Audio test files are located at `/Users/didi/Downloads/audio/en/clips`
-- Tests skip if MISTRAL_API_KEY is not set
+- Shiny custom messages use `Shiny.addCustomMessageHandler(kind, callback)` pattern in voice.js
+- Backend sends messages via `await session.send_custom_message(kind, data)` pattern
+- LLM backends: MistralBackend.complete_streaming() yields LLMChunk objects with message.content
+- Config pattern: ProviderConfig for API settings, ModelConfig for model settings
+- LLM streaming: async generator that yields chunks incrementally
+- Branch naming: `ralph/<feature-slug>` from master
 
 ## Status: Complete
 
@@ -11,85 +15,39 @@
 
 ## Completed Stories: US-001, US-002, US-003, US-004, US-005, US-006
 
-## Notes:
-- Audio files located at: /Users/didi/Downloads/audio/en/clips
-- Tests will skip if MISTRAL_API_KEY is not set
-- Using pydub for MP3 to PCM conversion
-
----
-## 2026-05-15 - US-005
-- Added test_silence_detection_stops_transcription to tests/test_vad_asr_integration.py
-- Created create_speech_with_silence_audio() helper to generate synthetic audio
-- Test verifies VAD emits VADStateChange from SPEAKING to SILENCE
-- Test verifies VAD emits VADSilenceTimeout after 1.5s silence (default config)
-- Test verifies transcription stops when VADSilenceTimeout is received
-- Uses broadcaster.close() to stop ASR stream when silence timeout occurs
-- All 5 integration tests pass
-- **Learnings for future iterations:**
-  - VADSilenceTimeout triggers after configured silence_duration threshold
-  - Can use broadcaster.close() to stop consumers early
-  - Synthetic audio creation uses b"\x00\x00" * samples for silence
----
-## 2026-05-15 - US-006
-- Added test_continuous_speech_no_premature_timeout to tests/test_vad_asr_integration.py
-- Uses longer audio file (78 KB) with continuous speech
-- Verifies full transcription text is received
-- Verifies TranscribeDone is received at stream end
-- Notes that real audio may have natural pauses causing timeouts, but transcription completes
-- All 6 integration tests pass
-- **Learnings for future iterations:**
-  - Real audio files may have natural pauses that trigger VADSilenceTimeout
-  - Key assertion is complete transcription regardless of timeout behavior
----
-## 2026-05-15 - US-004
-- Created tests/test_vad_asr_integration.py with 4 integration tests
-- Test parallel VAD and ASR processing using AudioBroadcaster
-- Test with longer audio file (78 KB)
-- Test with multiple audio files sequentially
-- Test that VAD detects speech state changes during audio
-- Use asyncio.gather to run broadcast, VAD, and ASR concurrently
-- Verify both VAD events and transcription results are received
-- All 4 tests pass
-- **Learnings for future iterations:**
-  - AudioBroadcaster requires subscribing before broadcast starts
-  - Use asyncio.gather for parallel processing of broadcast and consumers
-  - API rate limiting can cause tests to hang - run tests with delays or individually
-  - Error handling tests skipped in batch runs to avoid rate limiting
----
-## 2026-05-15 - US-003
-- Added 4 error handling tests to tests/test_transcribe.py
-- Test empty audio stream: completes without hanging
-- Test invalid audio format (non-PCM data): graceful handling
-- Test silence audio: valid PCM but no speech
-- Test very short audio: single chunk
-- All tests verify the client completes without hanging or crashing
-- **Learnings for future iterations:**
-  - The Mistral API handles edge cases gracefully on the server side
-  - Tests don't need pytest-timeout - they complete quickly
-  - Empty stream uses `return; yield` pattern to create an async generator
----
-## 2026-05-15 - US-002
-- Created tests/test_transcribe.py with 5 tests for MistralTranscribeClient
-- Added python-socks dependency for SOCKS proxy support
-- Tests verify: TranscribeSessionCreated, TranscribeTextDelta, TranscribeDone events
-- Tests verify full text is non-empty and contains English words
-- Used correct model name: voxtral-mini-transcribe-realtime-2602
-- All tests pass (5 transcribe tests + 32 other tests)
-- **Learnings for future iterations:**
-  - Model name must be `voxtral-mini-transcribe-realtime-2602`, not `voxtral-mini-latest`
-  - Tests require MISTRAL_API_KEY env var - they skip automatically if not set
-  - websocket connection needs python-socks package for proxy support
 ---
 ## 2026-05-15 - US-001
-- Implemented audio file loader utility in tests/conftest.py
-- Added pydub dependency for MP3 to PCM conversion
-- Created load_audio_file() to load MP3 and convert to PCM int16 at 16kHz
-- Created audio_chunk_stream() async generator yielding 4096-sample chunks
-- Created load_audio_as_stream() convenience function
-- Selected 8 representative audio files in AUDIO_TEST_FILES constant
+- Imported MistralBackend, ProviderConfig, ModelConfig, LLMMessage, Role from voicevibe modules
+- Added _call_llm_streaming() function to app.py
+- Uses MistralBackend.complete_streaming() with mistral-small-latest model
+- Uses MISTRAL_API_KEY environment variable for authentication
+- All 47 tests pass
 - **Learnings for future iterations:**
-  - pydub emits SyntaxWarning on Python 3.12 (deprecated regex escape sequences) - this is expected
-  - pydub uses deprecated `audioop` module (will be removed in Python 3.13)
-  - Chunk size is 8192 bytes (4096 samples * 2 bytes for int16)
-  - The test audio files range from 14 KB to 78 KB
+  - MistralBackend requires async context manager (`async with MistralBackend(provider=provider) as backend`)
+  - LLMChunk.message.content contains the streaming text content
+  - Model name is `mistral-small-latest` for Mistral Small model
+---
+## 2026-05-15 - US-002, US-003
+- Modified _run_voice_pipeline to call LLM after transcription done
+- Sends vv_llm_start message with question text when LLM streaming begins
+- Sends vv_llm_chunk message for each streaming chunk
+- Sends vv_llm_done message when streaming completes
+- Handles errors with vv_llm_error message
+- Sends vv_status='llm_streaming' and vv_status='llm_done' for state tracking
+- All 47 tests pass
+- **Learnings for future iterations:**
+  - The _SilenceAfterSpeech exception handler is the right place to call LLM
+  - Need to await asr_task to get the transcript text before calling LLM
+---
+## 2026-05-15 - US-004, US-005, US-006
+- Added Q&A container HTML to voice panel (below transcript-box)
+- Added question div with id='llm-question' and answer div with id='llm-answer'
+- Q&A container hidden initially (display: none)
+- Added CSS styles for .vv-qa-container, .vv-qa-section, .vv-qa-label, .vv-qa-text
+- Added Shiny message handlers: vv_llm_start, vv_llm_chunk, vv_llm_done, vv_llm_error
+- Added Q&A reset in openVoicePanel() to clear content on new session
+- **Learnings for future iterations:**
+  - Q&A container shown in vv_llm_start handler, hidden in openVoicePanel()
+  - Answer text appended incrementally in vv_llm_chunk handler
+  - Waveform and transcript reset also included in openVoicePanel()
 ---
