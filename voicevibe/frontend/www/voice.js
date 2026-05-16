@@ -297,7 +297,17 @@
         }
         if (msg.state === "done" || msg.state === "timeout") {
           var waveform = qs(".vv-waveform");
-          if (waveform) waveform.style.display = "none";
+          if (waveform) {
+            waveform.classList.remove("animating");
+            waveform.style.display = "none";
+          }
+        }
+        if (msg.state === "llm_streaming" || msg.state === "llm_done") {
+          var waveform = qs(".vv-waveform");
+          if (waveform) {
+            waveform.classList.remove("animating");
+            waveform.style.display = "none";
+          }
         }
         if (msg.state === "timeout") {
           var vp = qs(".vv-voice-panel");
@@ -308,7 +318,7 @@
       });
 
       // Backend-triggered close
-      Shiny.addCustomMessageHandler("vv_close_voice", function () {
+      Shiny.addCustomMessageHandler("vv_close_voice", function (msg) {
         var panel = qs(".vv-voice-panel");
         if (panel) panel.classList.remove("active");
       });
@@ -330,7 +340,7 @@
       });
 
       // LLM streaming done
-      Shiny.addCustomMessageHandler("vv_llm_done", function () {
+      Shiny.addCustomMessageHandler("vv_llm_done", function (msg) {
         // Q&A remains visible, no further changes needed
       });
 
