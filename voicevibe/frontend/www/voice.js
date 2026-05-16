@@ -287,6 +287,18 @@
 
       // Status updates
       Shiny.addCustomMessageHandler("vv_status", function (msg) {
+        if (msg.state === "speaking") {
+          var waveform = qs(".vv-waveform");
+          if (waveform) waveform.classList.add("animating");
+        }
+        if (msg.state === "listening") {
+          var waveform = qs(".vv-waveform");
+          if (waveform) waveform.classList.remove("animating");
+        }
+        if (msg.state === "done" || msg.state === "timeout") {
+          var waveform = qs(".vv-waveform");
+          if (waveform) waveform.style.display = "none";
+        }
         if (msg.state === "timeout") {
           var vp = qs(".vv-voice-panel");
           if (vp && vp.classList.contains("active")) {

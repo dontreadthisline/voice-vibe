@@ -367,19 +367,32 @@ html, body, .page-container {
   width: 6px;
   background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
   border-radius: 3px;
-  animation: wave 1.2s ease-in-out infinite;
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
 }
 
-.vv-wave-bar:nth-child(1) { height: 24px; animation-delay: 0.0s; }
-.vv-wave-bar:nth-child(2) { height: 48px; animation-delay: 0.1s; }
-.vv-wave-bar:nth-child(3) { height: 72px; animation-delay: 0.2s; }
-.vv-wave-bar:nth-child(4) { height: 96px; animation-delay: 0.3s; }
-.vv-wave-bar:nth-child(5) { height: 120px; animation-delay: 0.15s; }
-.vv-wave-bar:nth-child(6) { height: 96px; animation-delay: 0.25s; }
-.vv-wave-bar:nth-child(7) { height: 72px; animation-delay: 0.05s; }
-.vv-wave-bar:nth-child(8) { height: 48px; animation-delay: 0.35s; }
-.vv-wave-bar:nth-child(9) { height: 24px; animation-delay: 0.1s; }
+.vv-wave-bar:nth-child(1) { height: 24px; }
+.vv-wave-bar:nth-child(2) { height: 48px; }
+.vv-wave-bar:nth-child(3) { height: 72px; }
+.vv-wave-bar:nth-child(4) { height: 96px; }
+.vv-wave-bar:nth-child(5) { height: 120px; }
+.vv-wave-bar:nth-child(6) { height: 96px; }
+.vv-wave-bar:nth-child(7) { height: 72px; }
+.vv-wave-bar:nth-child(8) { height: 48px; }
+.vv-wave-bar:nth-child(9) { height: 24px; }
+
+.vv-waveform.animating .vv-wave-bar {
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+.vv-waveform.animating .vv-wave-bar:nth-child(1) { animation-delay: 0.0s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(2) { animation-delay: 0.1s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(3) { animation-delay: 0.2s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(4) { animation-delay: 0.3s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(5) { animation-delay: 0.15s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(6) { animation-delay: 0.25s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(7) { animation-delay: 0.05s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(8) { animation-delay: 0.35s; }
+.vv-waveform.animating .vv-wave-bar:nth-child(9) { animation-delay: 0.1s; }
 
 @keyframes wave {
   0%, 100% {

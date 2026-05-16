@@ -288,6 +288,8 @@ async def _consume_vad(session, vad: SimpleVAD, audio_stream: AsyncIterator[byte
             if event.new_state.voice_state == VoiceState.SPEAKING:
                 speech_detected = True
                 await _push(session, "vv_status", state="speaking")
+            elif event.new_state.voice_state == VoiceState.SILENCE and speech_detected:
+                await _push(session, "vv_status", state="listening")
 
         elif isinstance(event, VADSilenceTimeout):
             if not speech_detected:
